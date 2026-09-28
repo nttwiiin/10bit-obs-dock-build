@@ -19,8 +19,8 @@ jobs:
         shell: pwsh
         run: |
           git clone --depth 1 https://github.com/obsproject/obs-plugintemplate.git _obs_template
-          Copy-Item -Recurse -Force src _obs_template/src
-          Copy-Item -Recurse -Force data _obs_template/data
+          Copy-Item -Recurse -Force src/* _obs_template/src/
+          Copy-Item -Recurse -Force data/* _obs_template/data/
           Copy-Item -Force CMakeLists.txt _obs_template/CMakeLists.txt
           Copy-Item -Force buildspec.json _obs_template/buildspec.json
 
