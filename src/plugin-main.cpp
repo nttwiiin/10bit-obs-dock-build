@@ -24,28 +24,12 @@ static QDockWidget *findDock(QMainWindow *mainWindow, const char *id)
     return mainWindow->findChild<QDockWidget *>(QString::fromUtf8(id), Qt::FindChildrenRecursively);
 }
 
-static void apply_obs_frame(QDockWidget *dock)
-{
-    if (!dock)
-        return;
-
-    // Keep the native OBS title bar and docking behavior, but give the whole
-    // 10BIT dock the same visible panel edge used by OBS' built-in docks.
-    dock->setStyleSheet(QStringLiteral(
-        "QDockWidget#%1 {"
-        " border: 1px solid #3f4652;"
-        " background: #20242d;"
-        " }"
-    ).arg(dock->objectName()));
-}
-
 static void attach_control_dock(QMainWindow *mainWindow)
 {
     auto *dock = findDock(mainWindow, kControlDockId);
     if (!dock)
         return;
 
-    apply_obs_frame(dock);
     dock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     mainWindow->addDockWidget(Qt::RightDockWidgetArea, dock);
     dock->setFloating(false);
@@ -60,7 +44,6 @@ static void attach_score_dock(QMainWindow *mainWindow)
     if (!scoreDock)
         return;
 
-    apply_obs_frame(scoreDock);
     scoreDock->setAllowedAreas(Qt::BottomDockWidgetArea | Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     scoreDock->setFloating(false);
 
