@@ -1,5 +1,7 @@
 #include "TenBitDockWidget.hpp"
 
+#include <obs-frontend-api.h>
+
 #include <QDir>
 #include <QDockWidget>
 #include <QFile>
@@ -8,6 +10,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
+#include <QMainWindow>
 #include <QPushButton>
 #include <QStandardPaths>
 #include <QStyle>
