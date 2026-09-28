@@ -33,7 +33,7 @@ QString teamName(const QJsonObject &match, const char *key, const QString &fallb
 }
 }
 
-TenBitScoreDockWidget::TenBitScoreDockWidget(QWidget *parent) : QWidget(parent)
+TenBitScoreDockWidget::TenBitScoreDockWidget(QWidget *parent) : TenBitObsDockContent(parent)
 {
     setObjectName("scoreDockRoot");
     buildUI();
