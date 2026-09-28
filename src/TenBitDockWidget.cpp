@@ -290,19 +290,36 @@ void TenBitDockWidget::setActive(QPushButton *button, bool active, const QString
 }
 
 
-void TenBitDockWidget::revealDock()
+bool TenBitDockWidget::revealDock()
 {
+    QWidget *mainWidget = static_cast<QWidget *>(obs_frontend_get_main_window());
+    if (mainWidget) {
+        if (auto *mainWindow = qobject_cast<QMainWindow *>(mainWidget)) {
+            if (auto *dock = mainWindow->findChild<QDockWidget *>(QStringLiteral("tenbit-broadcast-dock"), Qt::FindChildrenRecursively)) {
+                mainWindow->restoreDockWidget(dock);
+                dock->toggleViewAction()->setChecked(true);
+                dock->setVisible(true);
+                dock->show();
+                dock->raise();
+                if (dock->isFloating())
+                    dock->activateWindow();
+                return dock->isVisible();
+            }
+        }
+    }
+
     QWidget *w = this;
     while (w) {
         if (auto *dock = qobject_cast<QDockWidget *>(w)) {
+            dock->toggleViewAction()->setChecked(true);
+            dock->setVisible(true);
             dock->show();
             dock->raise();
-            dock->activateWindow();
-            return;
+            if (dock->isFloating())
+                dock->activateWindow();
+            return dock->isVisible();
         }
         w = w->parentWidget();
     }
-    show();
-    raise();
-    activateWindow();
+    return false;
 }
