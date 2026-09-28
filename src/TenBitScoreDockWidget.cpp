@@ -56,9 +56,11 @@ TenBitScoreDockWidget::TenBitScoreDockWidget(QWidget *parent) : QWidget(parent)
 void TenBitScoreDockWidget::buildUI()
 {
     setMinimumWidth(290);
-    setStyleSheet(R"(
-        QWidget#scoreDockRoot {
-            background: #0c1119;
+    auto *panel = new QFrame(this);
+    panel->setObjectName("tenbitScorePanel");
+    panel->setStyleSheet(R"(
+        QFrame#tenbitScorePanel {
+            background: transparent;
             color: #f5f7fb;
             font-size: 12px;
         }
@@ -145,7 +147,12 @@ void TenBitScoreDockWidget::buildUI()
         }
     )");
 
-    auto *root = new QVBoxLayout(this);
+    auto *outer = new QVBoxLayout(this);
+    outer->setContentsMargins(0, 0, 0, 0);
+    outer->setSpacing(0);
+    outer->addWidget(panel);
+
+    auto *root = new QVBoxLayout(panel);
     root->setContentsMargins(9, 7, 9, 7);
     root->setSpacing(5);
 
