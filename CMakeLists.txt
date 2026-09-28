@@ -18,6 +18,8 @@ find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network)
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
   src/plugin-main.cpp
+  src/TenBitObsDockContent.cpp
+  src/TenBitObsDockContent.hpp
   src/TenBitDockWidget.cpp
   src/TenBitDockWidget.hpp
   src/TenBitScoreDockWidget.cpp
