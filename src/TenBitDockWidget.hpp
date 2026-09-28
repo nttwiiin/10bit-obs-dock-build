@@ -5,12 +5,12 @@
 #include <QPointer>
 #include <QTcpSocket>
 #include <QTimer>
-#include <QWidget>
+#include "TenBitObsDockContent.hpp"
 
 class QLabel;
 class QPushButton;
 
-class TenBitDockWidget final : public QWidget {
+class TenBitDockWidget final : public TenBitObsDockContent {
     Q_OBJECT
 public:
     explicit TenBitDockWidget(QWidget *parent = nullptr);
