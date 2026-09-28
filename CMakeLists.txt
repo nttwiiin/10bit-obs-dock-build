@@ -20,6 +20,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
   src/plugin-main.cpp
   src/TenBitDockWidget.cpp
   src/TenBitDockWidget.hpp
+  src/TenBitScoreDockWidget.cpp
+  src/TenBitScoreDockWidget.hpp
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
