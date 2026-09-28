@@ -5,6 +5,8 @@
 #include <QDir>
 #include <QDockWidget>
 #include <QFile>
+#include <QFontMetrics>
+#include <QFrame>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QJsonDocument>
@@ -30,12 +32,21 @@ QString runtimeFilePath()
 
 QString sideTeam(const QJsonObject &match, const QString &side)
 {
-    return match.value(side == "A" ? "TeamA" : "TeamB").toString(side == "A" ? "ĐỘI A" : "ĐỘI B");
+    const QString value = match.value(side == "A" ? "TeamA" : "TeamB").toString().trimmed();
+    return value.isEmpty() ? (side == "A" ? "ĐỘI A" : "ĐỘI B") : value;
+}
+
+QLabel *sectionLabel(const QString &text)
+{
+    auto *label = new QLabel(text);
+    label->setObjectName("section");
+    return label;
 }
 }
 
 TenBitDockWidget::TenBitDockWidget(QWidget *parent) : QWidget(parent)
 {
+    setObjectName("dockRoot");
     buildUI();
 
     connect(&socket_, &QTcpSocket::connected, this, &TenBitDockWidget::onConnected);
@@ -57,44 +68,162 @@ void TenBitDockWidget::buildUI()
 {
     setMinimumWidth(285);
     setStyleSheet(R"(
-        QWidget { background: #0f131b; color: #f3f5f8; font-size: 12px; }
-        QLabel#title { font-size: 20px; font-weight: 700; }
-        QLabel#muted { color: #93a0b4; }
-        QLabel#score { font-size: 22px; font-weight: 700; }
-        QPushButton { background: #202632; border: 1px solid #394252; padding: 8px 7px; font-weight: 600; }
-        QPushButton:hover { background: #2a3240; }
-        QPushButton:pressed { background: #343e4f; }
-        QPushButton[active="true"] { background: #d51e42; border-color: #ef3157; color: white; }
-        QPushButton:disabled { color: #667085; background: #171b23; }
+        QWidget#dockRoot {
+            background: #0c1119;
+            color: #f5f7fb;
+            font-size: 12px;
+        }
+        QLabel#title {
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.4px;
+        }
+        QLabel#statusDot {
+            font-size: 18px;
+            font-weight: 900;
+            padding: 0px;
+        }
+        QLabel#statusDot[state="connected"] { color: #43e58a; }
+        QLabel#statusDot[state="waiting"] { color: #f6c94c; }
+        QLabel#statusDot[state="offline"] { color: #ff5568; }
+        QLabel#project {
+            color: #aab4c4;
+            background: #111925;
+            border: 1px solid #202c3c;
+            border-radius: 6px;
+            padding: 6px 8px;
+        }
+        QLabel#section {
+            color: #7f8da2;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            padding-top: 2px;
+        }
+        QFrame#scoreCard {
+            background: #121a25;
+            border: 1px solid #253247;
+            border-radius: 9px;
+        }
+        QLabel#teamName {
+            color: #b8c3d2;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        QLabel#scoreValue {
+            color: #ffffff;
+            font-size: 30px;
+            font-weight: 900;
+        }
+        QLabel#scoreDash {
+            color: #56647a;
+            font-size: 22px;
+            font-weight: 700;
+        }
+        QLabel#call {
+            color: #8f9cb0;
+            font-size: 10px;
+        }
+        QLabel#notice {
+            color: #9aa6b8;
+            font-size: 10px;
+            padding: 3px 0px;
+        }
+        QPushButton {
+            background: #1b2533;
+            color: #f3f6fa;
+            border: 1px solid #334157;
+            border-radius: 6px;
+            min-height: 32px;
+            padding: 5px 8px;
+            font-weight: 700;
+        }
+        QPushButton:hover {
+            background: #253247;
+            border-color: #4b5c77;
+        }
+        QPushButton:pressed {
+            background: #303f56;
+        }
+        QPushButton[active="true"] {
+            background: #d91f49;
+            border-color: #ff4269;
+            color: #ffffff;
+        }
+        QPushButton:disabled {
+            color: #627086;
+            background: #131a24;
+            border-color: #242e3d;
+        }
+        QPushButton#replaySave {
+            border-color: #66551d;
+            color: #f7d95a;
+        }
     )");
 
     auto *root = new QVBoxLayout(this);
-    root->setContentsMargins(12, 12, 12, 12);
-    root->setSpacing(8);
+    root->setContentsMargins(10, 9, 10, 9);
+    root->setSpacing(7);
 
+    auto *header = new QHBoxLayout();
+    header->setContentsMargins(0, 0, 0, 0);
     auto *title = new QLabel("10BIT BROADCAST");
     title->setObjectName("title");
-    root->addWidget(title);
-
-    connectionLabel_ = new QLabel("● Đang tìm 10BIT Broadcast...");
-    connectionLabel_->setObjectName("muted");
-    root->addWidget(connectionLabel_);
+    connectionLabel_ = new QLabel("●");
+    connectionLabel_->setObjectName("statusDot");
+    connectionLabel_->setAlignment(Qt::AlignCenter);
+    connectionLabel_->setFixedWidth(20);
+    header->addWidget(title);
+    header->addStretch(1);
+    header->addWidget(connectionLabel_);
+    root->addLayout(header);
 
     projectLabel_ = new QLabel("Chưa mở Project");
-    projectLabel_->setObjectName("muted");
+    projectLabel_->setObjectName("project");
     root->addWidget(projectLabel_);
 
-    scoreLabel_ = new QLabel("0   –   0");
-    scoreLabel_->setObjectName("score");
-    scoreLabel_->setAlignment(Qt::AlignCenter);
-    root->addWidget(scoreLabel_);
+    auto *scoreCard = new QFrame();
+    scoreCard->setObjectName("scoreCard");
+    auto *scoreGrid = new QGridLayout(scoreCard);
+    scoreGrid->setContentsMargins(10, 7, 10, 7);
+    scoreGrid->setHorizontalSpacing(8);
+    scoreGrid->setVerticalSpacing(1);
+    scoreGrid->setColumnStretch(0, 1);
+    scoreGrid->setColumnStretch(2, 1);
 
-    serveLabel_ = new QLabel("Mở Project Pickleball trong 10BIT Broadcast");
-    serveLabel_->setWordWrap(true);
+    teamALabel_ = new QLabel("ĐỘI A");
+    teamALabel_->setObjectName("teamName");
+    teamALabel_->setAlignment(Qt::AlignCenter);
+    teamBLabel_ = new QLabel("ĐỘI B");
+    teamBLabel_->setObjectName("teamName");
+    teamBLabel_->setAlignment(Qt::AlignCenter);
+
+    scoreAValue_ = new QLabel("0");
+    scoreAValue_->setObjectName("scoreValue");
+    scoreAValue_->setAlignment(Qt::AlignCenter);
+    scoreBValue_ = new QLabel("0");
+    scoreBValue_->setObjectName("scoreValue");
+    scoreBValue_->setAlignment(Qt::AlignCenter);
+
+    auto *dash = new QLabel("–");
+    dash->setObjectName("scoreDash");
+    dash->setAlignment(Qt::AlignCenter);
+
+    serveLabel_ = new QLabel("Game 0–0");
+    serveLabel_->setObjectName("call");
     serveLabel_->setAlignment(Qt::AlignCenter);
-    serveLabel_->setObjectName("muted");
-    root->addWidget(serveLabel_);
+    serveLabel_->setWordWrap(true);
 
+    scoreGrid->addWidget(teamALabel_, 0, 0);
+    scoreGrid->addWidget(teamBLabel_, 0, 2);
+    scoreGrid->addWidget(scoreAValue_, 1, 0);
+    scoreGrid->addWidget(dash, 1, 1);
+    scoreGrid->addWidget(scoreBValue_, 1, 2);
+    scoreGrid->addWidget(serveLabel_, 2, 0, 1, 3);
+    root->addWidget(scoreCard);
+
+    root->addWidget(sectionLabel("ĐỒ HỌA"));
     auto *graphics = new QGridLayout();
     graphics->setHorizontalSpacing(6);
     graphics->setVerticalSpacing(6);
@@ -112,7 +241,9 @@ void TenBitDockWidget::buildUI()
     graphics->addWidget(resultsButton_, 2, 1);
     root->addLayout(graphics);
 
+    root->addWidget(sectionLabel("ĐIỂM NHANH"));
     auto *scoreRow = new QHBoxLayout();
+    scoreRow->setSpacing(6);
     rallyAButton_ = makeButton("ĐỘI A +", "rally_a");
     rallyBButton_ = makeButton("ĐỘI B +", "rally_b");
     scoreRow->addWidget(rallyAButton_);
@@ -122,14 +253,19 @@ void TenBitDockWidget::buildUI()
     undoButton_ = makeButton("↶ HOÀN TÁC PHA", "undo");
     root->addWidget(undoButton_);
 
+    root->addWidget(sectionLabel("REPLAY"));
     saveReplayButton_ = makeButton("LƯU REPLAY", "save_replay");
+    saveReplayButton_->setObjectName("replaySave");
     root->addWidget(saveReplayButton_);
 
-    messageLabel_ = new QLabel("Dock native • không Browser Dock • không URL");
-    messageLabel_->setObjectName("muted");
+    messageLabel_ = new QLabel();
+    messageLabel_->setObjectName("notice");
     messageLabel_->setWordWrap(true);
+    messageLabel_->hide();
     root->addWidget(messageLabel_);
     root->addStretch(1);
+
+    setConnectionState("waiting", "Đang chờ 10BIT Broadcast Core");
 }
 
 QPushButton *TenBitDockWidget::makeButton(const QString &text, const QString &command)
@@ -165,7 +301,7 @@ void TenBitDockWidget::ensureConnected()
     if (socket_.state() == QAbstractSocket::ConnectedState || socket_.state() == QAbstractSocket::ConnectingState)
         return;
     if (!loadRuntime()) {
-        setConnectionText("● Mở 10BIT Broadcast để kết nối", false);
+        setConnectionState("waiting", "Đang chờ ứng dụng 10BIT Broadcast");
         return;
     }
     connectToRuntime();
@@ -175,12 +311,12 @@ void TenBitDockWidget::connectToRuntime()
 {
     socket_.abort();
     socket_.connectToHost(host_, port_);
-    setConnectionText("● Đang kết nối 10BIT Broadcast...", false);
+    setConnectionState("waiting", "Đang kết nối 10BIT Broadcast Core");
 }
 
 void TenBitDockWidget::onConnected()
 {
-    setConnectionText("● CONNECTED", true);
+    setConnectionState("connected", "Đã kết nối 10BIT Broadcast Core");
     pollTimer_.start();
     sendCommand("status");
 }
@@ -188,13 +324,13 @@ void TenBitDockWidget::onConnected()
 void TenBitDockWidget::onDisconnected()
 {
     pollTimer_.stop();
-    setConnectionText("● Mất kết nối • đang thử lại", false);
+    setConnectionState("offline", "Mất kết nối 10BIT Broadcast Core");
 }
 
 void TenBitDockWidget::onSocketError()
 {
     pollTimer_.stop();
-    setConnectionText("● Chưa kết nối 10BIT Broadcast", false);
+    setConnectionState("offline", "Không kết nối được 10BIT Broadcast Core");
 }
 
 void TenBitDockWidget::pollStatus()
@@ -234,6 +370,7 @@ void TenBitDockWidget::onReadyRead()
         const auto obj = doc.object();
         if (!obj.value("ok").toBool()) {
             messageLabel_->setText(obj.value("error").toString("Lỗi điều khiển Dock"));
+            messageLabel_->show();
             continue;
         }
         if (obj.value("state").isObject())
@@ -250,13 +387,12 @@ void TenBitDockWidget::applyState(const QJsonObject &state)
             QJsonObject ack;
             ack.insert("seq", static_cast<double>(showSeq));
             sendCommand("dock_show_ack", ack);
-            messageLabel_->setText("10BIT Dock đã được bật từ ứng dụng.");
         }
     }
 
     const QString sport = state.value("sportModule").toString();
     const bool pickleball = sport == "pickleball";
-    projectLabel_->setText(state.value("projectName").toString("Chưa mở Project") + (pickleball ? " • Pickleball" : ""));
+    projectLabel_->setText(state.value("projectName").toString("Chưa mở Project") + (pickleball ? "  •  Pickleball" : ""));
 
     const auto match = state.value("match").toObject();
     const auto graphics = state.value("graphics").toObject();
@@ -266,30 +402,45 @@ void TenBitDockWidget::applyState(const QJsonObject &state)
     const int scoreB = match.value("ScoreB").toInt();
     const int gamesA = match.value("GamesA").toInt();
     const int gamesB = match.value("GamesB").toInt();
-    scoreLabel_->setText(QString("%1  %2  –  %3  %4").arg(teamA).arg(scoreA).arg(scoreB).arg(teamB));
-    serveLabel_->setText(QString("Game %1–%2 • %3").arg(gamesA).arg(gamesB).arg(state.value("scoreCall").toString()));
 
-    setActive(scoreToggle_, graphics.value("ProgramScore").toBool(), "● BẢNG ĐIỂM", "BẢNG ĐIỂM");
-    setActive(lowerToggle_, graphics.value("ProgramLower").toBool(), "● LOWER THIRD", "LOWER THIRD");
+    const QFontMetrics fm(teamALabel_->font());
+    teamALabel_->setText(fm.elidedText(teamA, Qt::ElideRight, 112));
+    teamBLabel_->setText(fm.elidedText(teamB, Qt::ElideRight, 112));
+    teamALabel_->setToolTip(teamA);
+    teamBLabel_->setToolTip(teamB);
+    scoreAValue_->setText(QString::number(scoreA));
+    scoreBValue_->setText(QString::number(scoreB));
+
+    const QString call = state.value("scoreCall").toString().trimmed();
+    serveLabel_->setText(QString("Game %1–%2%3").arg(gamesA).arg(gamesB)
+        .arg(call.isEmpty() ? QString() : "  •  " + call));
+
+    setActive(scoreToggle_, graphics.value("ProgramScore").toBool(), "●  BẢNG ĐIỂM", "BẢNG ĐIỂM");
+    setActive(lowerToggle_, graphics.value("ProgramLower").toBool(), "●  LOWER THIRD", "LOWER THIRD");
     const QString takeover = graphics.value("ProgramTakeover").toString();
     setActive(timeoutButton_, takeover == "timeout");
     setActive(replayButton_, takeover == "replay");
     setActive(standbyButton_, takeover == "standby");
     setActive(resultsButton_, takeover == "results");
 
-    rallyAButton_->setText(teamA + " +");
-    rallyBButton_->setText(teamB + " +");
+    rallyAButton_->setText(teamA + "  +");
+    rallyBButton_->setText(teamB + "  +");
     rallyAButton_->setEnabled(pickleball);
     rallyBButton_->setEnabled(pickleball);
     undoButton_->setEnabled(pickleball && state.value("canUndo").toBool());
     saveReplayButton_->setEnabled(state.value("replayAvailable").toBool());
-    messageLabel_->setText(pickleball ? "Điều khiển trực tiếp 10BIT Core" : "Dock scoring hiện hỗ trợ Pickleball");
+
+    if (messageLabel_->isVisible())
+        messageLabel_->hide();
 }
 
-void TenBitDockWidget::setConnectionText(const QString &text, bool online)
+void TenBitDockWidget::setConnectionState(const QString &state, const QString &tooltip)
 {
-    connectionLabel_->setText(text);
-    connectionLabel_->setStyleSheet(online ? "color:#53e38a; font-weight:700;" : "color:#f0b93b;");
+    connectionLabel_->setText("●");
+    connectionLabel_->setProperty("state", state);
+    connectionLabel_->setToolTip(tooltip);
+    connectionLabel_->style()->unpolish(connectionLabel_);
+    connectionLabel_->style()->polish(connectionLabel_);
 }
 
 void TenBitDockWidget::setActive(QPushButton *button, bool active, const QString &activeText, const QString &inactiveText)
@@ -302,7 +453,6 @@ void TenBitDockWidget::setActive(QPushButton *button, bool active, const QString
     else if (!active && !inactiveText.isEmpty())
         button->setText(inactiveText);
 }
-
 
 bool TenBitDockWidget::revealDock()
 {
