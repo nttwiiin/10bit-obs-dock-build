@@ -40,7 +40,10 @@ QString sideTeam(const QJsonObject &match, const QString &side)
 QLabel *sectionLabel(const QString &text)
 {
     auto *label = new QLabel(text);
-    label->setObjectName("section");
+    QFont font = label->font();
+    font.setBold(true);
+    font.setPointSizeF(qMax(8.0, font.pointSizeF() - 1.0));
+    label->setFont(font);
     return label;
 }
 }
