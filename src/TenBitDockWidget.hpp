@@ -64,6 +64,4 @@ private:
     QPushButton *rallyBButton_ = nullptr;
     QPushButton *undoButton_ = nullptr;
     QPushButton *finishGameButton_ = nullptr;
-    QPushButton *replayBufferButton_ = nullptr;
-    QPushButton *saveReplayButton_ = nullptr;
 };
