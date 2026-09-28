@@ -50,4 +50,5 @@ private:
     QPushButton *rallyAButton_ = nullptr;
     QPushButton *rallyBButton_ = nullptr;
     QPushButton *undoButton_ = nullptr;
+    QPushButton *finishGameButton_ = nullptr;
 };
