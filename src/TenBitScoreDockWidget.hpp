@@ -4,12 +4,12 @@
 #include <QJsonObject>
 #include <QTcpSocket>
 #include <QTimer>
-#include <QWidget>
+#include "TenBitObsDockContent.hpp"
 
 class QLabel;
 class QPushButton;
 
-class TenBitScoreDockWidget final : public QWidget {
+class TenBitScoreDockWidget final : public TenBitObsDockContent {
     Q_OBJECT
 public:
     explicit TenBitScoreDockWidget(QWidget *parent = nullptr);
