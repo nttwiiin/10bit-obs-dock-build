@@ -1,0 +1,65 @@
+name: Build 10BIT OBS Dock (Windows x64)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout 10BIT dock source
+        uses: actions/checkout@v4
+
+      - name: Prepare official OBS plugin-template build environment
+        shell: pwsh
+        run: |
+          git clone --depth 1 https://github.com/obsproject/obs-plugintemplate.git _obs_template
+          Copy-Item -Recurse -Force src _obs_template/src
+          Copy-Item -Recurse -Force data _obs_template/data
+          Copy-Item -Force CMakeLists.txt _obs_template/CMakeLists.txt
+          Copy-Item -Force buildspec.json _obs_template/buildspec.json
+
+          $presetPath = Join-Path $PWD '_obs_template/CMakePresets.json'
+          $json = Get-Content $presetPath -Raw | ConvertFrom-Json
+          $template = $json.configurePresets | Where-Object { $_.name -eq 'template' }
+          $template.cacheVariables.ENABLE_FRONTEND_API = $true
+          $template.cacheVariables.ENABLE_QT = $true
+          $json | ConvertTo-Json -Depth 30 | Set-Content -Encoding UTF8 $presetPath
+
+      - name: Build native OBS plugin
+        shell: pwsh
+        working-directory: _obs_template
+        run: |
+          ./.github/scripts/Build-Windows.ps1 -Target x64 -Configuration RelWithDebInfo
+
+      - name: Stage OBS 32 plugin package
+        shell: pwsh
+        run: |
+          $dll = Get-ChildItem -Path _obs_template -Recurse -Filter '10bit-broadcast-dock.dll' | Select-Object -First 1
+          if (-not $dll) { throw '10bit-broadcast-dock.dll was not produced' }
+
+          $root = Join-Path $PWD 'artifact/10bit-broadcast-dock'
+          $bin = Join-Path $root 'bin/64bit'
+          $data = Join-Path $root 'data/locale'
+          New-Item -ItemType Directory -Force $bin | Out-Null
+          New-Item -ItemType Directory -Force $data | Out-Null
+          Copy-Item -Force $dll.FullName (Join-Path $bin '10bit-broadcast-dock.dll')
+          Copy-Item -Force data/locale/*.ini $data
+
+          Get-FileHash (Join-Path $bin '10bit-broadcast-dock.dll') -Algorithm SHA256 | Format-List | Out-File artifact/SHA256.txt
+          Compress-Archive -Path $root -DestinationPath artifact/10BIT_OBS_DOCK_WINDOWS_X64.zip -Force
+
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 10BIT_OBS_DOCK_WINDOWS_X64
+          path: |
+            artifact/10BIT_OBS_DOCK_WINDOWS_X64.zip
+            artifact/SHA256.txt
+          if-no-files-found: error
+          retention-days: 30
