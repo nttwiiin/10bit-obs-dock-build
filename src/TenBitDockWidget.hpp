@@ -29,7 +29,7 @@ private:
     bool loadRuntime();
     void connectToRuntime();
     void sendCommand(const QString &command, const QJsonObject &args = {});
-    void applyState(const QJsonObject &state);
+    void applyState(const QJsonObject &state);\n    void revealDock();
     void setConnectionText(const QString &text, bool online);
     QPushButton *makeButton(const QString &text, const QString &command);
     void setActive(QPushButton *button, bool active, const QString &activeText = {}, const QString &inactiveText = {});
@@ -41,7 +41,7 @@ private:
     QString host_ = "127.0.0.1";
     quint16 port_ = 0;
     QString token_;
-    quint64 requestId_ = 0;
+    quint64 requestId_ = 0;\n    quint64 lastDockShowSeq_ = 0;
 
     QLabel *connectionLabel_ = nullptr;
     QLabel *projectLabel_ = nullptr;
