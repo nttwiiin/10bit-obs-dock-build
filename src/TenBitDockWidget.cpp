@@ -67,9 +67,11 @@ TenBitDockWidget::TenBitDockWidget(QWidget *parent) : QWidget(parent)
 void TenBitDockWidget::buildUI()
 {
     setMinimumWidth(285);
-    setStyleSheet(R"(
-        QWidget#dockRoot {
-            background: #0c1119;
+    auto *panel = new QFrame(this);
+    panel->setObjectName("tenbitPanel");
+    panel->setStyleSheet(R"(
+        QFrame#tenbitPanel {
+            background: transparent;
             color: #f5f7fb;
             font-size: 12px;
         }
@@ -162,7 +164,12 @@ void TenBitDockWidget::buildUI()
         }
     )");
 
-    auto *root = new QVBoxLayout(this);
+    auto *outer = new QVBoxLayout(this);
+    outer->setContentsMargins(0, 0, 0, 0);
+    outer->setSpacing(0);
+    outer->addWidget(panel);
+
+    auto *root = new QVBoxLayout(panel);
     root->setContentsMargins(10, 9, 10, 9);
     root->setSpacing(7);
 
