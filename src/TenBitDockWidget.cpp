@@ -478,6 +478,7 @@ void TenBitDockWidget::applyState(const QJsonObject &state)
     undoButton_->setEnabled(pickleball && state.value("canUndo").toBool());
     finishGameButton_->setEnabled(pickleball && gameDone);
     const bool replayAvailable = state.value("replayAvailable").toBool();
+    const bool replayBufferActive = state.value("replayBufferActive").toBool();
     const bool replayPlaying = state.value("replayPlaying").toBool();
     replayDurationSec_ = qMax(1, state.value("replayDurationSec").toInt(5));
     replaySpeedPercent_ = qMax(1, state.value("replaySpeedPercent").toInt(50));
