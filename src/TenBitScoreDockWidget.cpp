@@ -209,6 +209,9 @@ void TenBitScoreDockWidget::buildUI()
     undoButton_ = new QPushButton("↶  HOÀN TÁC");
     connect(undoButton_, &QPushButton::clicked, this, [this]() { sendCommand("undo"); });
     root->addWidget(undoButton_);
+    finishGameButton_ = new QPushButton("KẾT THÚC GAME");
+    connect(finishGameButton_, &QPushButton::clicked, this, [this]() { sendCommand("finish_game"); });
+    root->addWidget(finishGameButton_);
 
     root->addStretch(1);
 
@@ -339,11 +342,14 @@ void TenBitScoreDockWidget::applyState(const QJsonObject &state)
     callLabel_->setText(QString("Game %1–%2%3").arg(gamesA).arg(gamesB)
         .arg(call.isEmpty() ? QString() : "  •  " + call));
 
+    const bool gameDone = !match.value("GameWinner").toString().isEmpty();
+    const bool matchDone = !match.value("MatchWinner").toString().isEmpty();
     rallyAButton_->setText(teamA + "  +");
     rallyBButton_->setText(teamB + "  +");
-    rallyAButton_->setEnabled(pickleball);
-    rallyBButton_->setEnabled(pickleball);
+    rallyAButton_->setEnabled(pickleball && !gameDone && !matchDone);
+    rallyBButton_->setEnabled(pickleball && !gameDone && !matchDone);
     undoButton_->setEnabled(pickleball && state.value("canUndo").toBool());
+    finishGameButton_->setEnabled(pickleball && gameDone);
 }
 
 void TenBitScoreDockWidget::setConnectionState(const QString &state, const QString &tooltip)
