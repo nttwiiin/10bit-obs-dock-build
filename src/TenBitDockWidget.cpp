@@ -4,10 +4,14 @@
 
 #include <QDir>
 #include <QDockWidget>
+#include <QComboBox>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QFile>
 #include <QFont>
 #include <QFontMetrics>
 #include <QFrame>
+#include <QFormLayout>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QJsonDocument>
@@ -233,13 +237,26 @@ void TenBitDockWidget::buildUI()
     finishGameButton_ = makeButton("KẾT THÚC GAME", "finish_game");
     root->addWidget(finishGameButton_);
 
-    auto *replayLabel = sectionLabel("REPLAY 1 CHẠM");
+    auto *replayLabel = sectionLabel("REPLAY");
     replayLabel->setObjectName("section");
     root->addWidget(replayLabel);
 
-    replayButton_ = makeButton(QString::fromUtf8("↻  REPLAY 1 CHẠM  •  5s  •  0.5×"), "replay");
+    auto *replayRow = new QHBoxLayout();
+    replayRow->setSpacing(5);
+    replayButton_ = makeButton("REPLAY", "replay");
     replayButton_->setMinimumHeight(38);
-    root->addWidget(replayButton_);
+    replaySettingsButton_ = new QPushButton(QString::fromUtf8("⚙"));
+    replaySettingsButton_->setCursor(Qt::PointingHandCursor);
+    replaySettingsButton_->setToolTip("Cài đặt Replay");
+    replaySettingsButton_->setFixedWidth(42);
+    replaySettingsButton_->setMinimumHeight(38);
+    connect(replaySettingsButton_, &QPushButton::clicked, this, [this]() { openReplaySettings(); });
+    replayRow->addWidget(replayButton_, 1);
+    replayRow->addWidget(replaySettingsButton_);
+    root->addLayout(replayRow);
+
+    recordReplayButton_ = makeButton("GHI REPLAY", "record_replay");
+    root->addWidget(recordReplayButton_);
 
     messageLabel_ = new QLabel();
     messageLabel_->setWordWrap(true);
@@ -256,6 +273,50 @@ QPushButton *TenBitDockWidget::makeButton(const QString &text, const QString &co
     button->setCursor(Qt::PointingHandCursor);
     connect(button, &QPushButton::clicked, this, [this, command]() { sendCommand(command); });
     return button;
+}
+
+void TenBitDockWidget::openReplaySettings()
+{
+    QDialog dialog(this);
+    dialog.setWindowTitle("Cài đặt Replay");
+    dialog.setModal(true);
+    dialog.setMinimumWidth(290);
+
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *form = new QFormLayout();
+    auto *duration = new QComboBox(&dialog);
+    for (int sec : {3, 5, 8, 10})
+        duration->addItem(QString("%1 giây").arg(sec), sec);
+    auto *speed = new QComboBox(&dialog);
+    for (int pct : {100, 75, 50, 25})
+        speed->addItem(QString("%1%  (%2×)").arg(pct).arg(QString::number(pct / 100.0, 'f', pct == 100 ? 0 : 2)), pct);
+
+    int durationIndex = duration->findData(replayDurationSec_);
+    if (durationIndex >= 0)
+        duration->setCurrentIndex(durationIndex);
+    int speedIndex = speed->findData(replaySpeedPercent_);
+    if (speedIndex >= 0)
+        speed->setCurrentIndex(speedIndex);
+
+    form->addRow("Đoạn nguồn:", duration);
+    form->addRow("Tốc độ phát:", speed);
+    layout->addLayout(form);
+
+    auto *hint = new QLabel("Ví dụ: 3 giây ở 50% = khoảng 6 giây phát lại.", &dialog);
+    hint->setWordWrap(true);
+    layout->addWidget(hint);
+
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    QJsonObject args;
+    args.insert("durationSec", duration->currentData().toInt());
+    args.insert("speedPercent", speed->currentData().toInt());
+    sendCommand("set_replay_settings", args);
 }
 
 bool TenBitDockWidget::loadRuntime()
@@ -353,6 +414,10 @@ void TenBitDockWidget::onReadyRead()
         if (!obj.value("ok").toBool()) {
             messageLabel_->setText(obj.value("error").toString("Lỗi điều khiển Dock"));
             messageLabel_->show();
+            QTimer::singleShot(5000, messageLabel_, [this]() {
+                if (messageLabel_)
+                    messageLabel_->hide();
+            });
             continue;
         }
         if (obj.value("state").isObject())
@@ -414,16 +479,12 @@ void TenBitDockWidget::applyState(const QJsonObject &state)
     finishGameButton_->setEnabled(pickleball && gameDone);
     const bool replayAvailable = state.value("replayAvailable").toBool();
     const bool replayPlaying = state.value("replayPlaying").toBool();
-    const int replaySeconds = qMax(1, state.value("replayDurationSec").toInt(5));
-    const int replaySpeed = qMax(1, state.value("replaySpeedPercent").toInt(50));
-    const QString replayIdle = QString::fromUtf8("↻  REPLAY 1 CHẠM  •  %1s  •  %2×")
-                                   .arg(replaySeconds)
-                                   .arg(QString::number(replaySpeed / 100.0, 'f', replaySpeed % 100 == 0 ? 0 : 2));
+    replayDurationSec_ = qMax(1, state.value("replayDurationSec").toInt(5));
+    replaySpeedPercent_ = qMax(1, state.value("replaySpeedPercent").toInt(50));
     replayButton_->setEnabled(replayAvailable);
-    setActive(replayButton_, replayPlaying, QString::fromUtf8("■  DỪNG REPLAY • VỀ LIVE"), replayIdle);
-
-    if (messageLabel_->isVisible())
-        messageLabel_->hide();
+    replaySettingsButton_->setEnabled(replayAvailable);
+    recordReplayButton_->setEnabled(replayAvailable);
+    setActive(replayButton_, replayPlaying, "REPLAY", "REPLAY");
 }
 
 void TenBitDockWidget::setConnectionState(const QString &state, const QString &tooltip)
