@@ -1,13 +1,17 @@
 #include "TenBitScoreDockWidget.hpp"
 
 #include <QDir>
-#include <QHBoxLayout>
 #include <QFile>
+#include <QFontMetrics>
+#include <QFrame>
+#include <QGridLayout>
+#include <QHBoxLayout>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
 #include <QPushButton>
 #include <QStandardPaths>
+#include <QStyle>
 #include <QVBoxLayout>
 
 namespace {
@@ -24,13 +28,14 @@ QString runtimeFilePath()
 
 QString teamName(const QJsonObject &match, const char *key, const QString &fallback)
 {
-    const QString v = match.value(QString::fromLatin1(key)).toString().trimmed();
-    return v.isEmpty() ? fallback : v;
+    const QString value = match.value(QString::fromLatin1(key)).toString().trimmed();
+    return value.isEmpty() ? fallback : value;
 }
 }
 
 TenBitScoreDockWidget::TenBitScoreDockWidget(QWidget *parent) : QWidget(parent)
 {
+    setObjectName("scoreDockRoot");
     buildUI();
 
     connect(&socket_, &QTcpSocket::connected, this, &TenBitScoreDockWidget::onConnected);
@@ -50,57 +55,178 @@ TenBitScoreDockWidget::TenBitScoreDockWidget(QWidget *parent) : QWidget(parent)
 
 void TenBitScoreDockWidget::buildUI()
 {
-    setMinimumWidth(260);
+    setMinimumWidth(290);
     setStyleSheet(R"(
-        QWidget { background: #111722; color: #f4f6f9; font-size: 12px; }
-        QLabel#title { font-size: 16px; font-weight: 800; }
-        QLabel#muted { color: #96a1b4; }
-        QLabel#score { font-size: 27px; font-weight: 800; padding: 3px; }
-        QPushButton { background: #242c39; border: 1px solid #3c4657; padding: 10px 8px; font-weight: 700; }
-        QPushButton:hover { background: #303a49; }
-        QPushButton:pressed { background: #3a4658; }
-        QPushButton:disabled { color: #657084; background: #171d27; }
+        QWidget#scoreDockRoot {
+            background: #0c1119;
+            color: #f5f7fb;
+            font-size: 12px;
+        }
+        QLabel#title {
+            color: #ffffff;
+            font-size: 17px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+        }
+        QLabel#statusDot {
+            font-size: 18px;
+            font-weight: 900;
+            padding: 0px;
+        }
+        QLabel#statusDot[state="connected"] { color: #43e58a; }
+        QLabel#statusDot[state="waiting"] { color: #f6c94c; }
+        QLabel#statusDot[state="offline"] { color: #ff5568; }
+        QLabel#project {
+            color: #aab4c4;
+            font-size: 10px;
+            padding: 1px 0px 3px 0px;
+        }
+        QLabel#section {
+            color: #7f8da2;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+        QFrame#scoreCard {
+            background: #121a25;
+            border: 1px solid #26364d;
+            border-radius: 9px;
+        }
+        QLabel#teamName {
+            color: #b9c4d3;
+            font-size: 11px;
+            font-weight: 800;
+        }
+        QLabel#scoreValue {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 900;
+        }
+        QLabel#dash {
+            color: #56647a;
+            font-size: 22px;
+            font-weight: 800;
+        }
+        QLabel#call {
+            color: #8f9cb0;
+            font-size: 10px;
+        }
+        QPushButton {
+            background: #1c2634;
+            color: #ffffff;
+            border: 1px solid #36455c;
+            border-radius: 7px;
+            min-height: 34px;
+            padding: 6px 8px;
+            font-weight: 800;
+        }
+        QPushButton:hover {
+            background: #28364a;
+            border-color: #536783;
+        }
+        QPushButton:pressed {
+            background: #33445c;
+        }
+        QPushButton#teamA {
+            border-bottom: 2px solid #f4c934;
+        }
+        QPushButton#teamB {
+            border-bottom: 2px solid #df3156;
+        }
+        QPushButton#undo {
+            color: #aab5c6;
+            background: #141c27;
+            min-height: 29px;
+        }
+        QPushButton:disabled {
+            color: #5f6d82;
+            background: #121923;
+            border-color: #242f40;
+        }
     )");
 
     auto *root = new QVBoxLayout(this);
-    root->setContentsMargins(10, 8, 10, 8);
+    root->setContentsMargins(9, 7, 9, 7);
     root->setSpacing(5);
 
+    auto *header = new QHBoxLayout();
     auto *title = new QLabel("10BIT SCORE");
     title->setObjectName("title");
-    root->addWidget(title);
-
-    connectionLabel_ = new QLabel("● Đang kết nối...");
-    connectionLabel_->setObjectName("muted");
-    root->addWidget(connectionLabel_);
+    connectionLabel_ = new QLabel("●");
+    connectionLabel_->setObjectName("statusDot");
+    connectionLabel_->setAlignment(Qt::AlignCenter);
+    connectionLabel_->setFixedWidth(20);
+    header->addWidget(title);
+    header->addStretch(1);
+    header->addWidget(connectionLabel_);
+    root->addLayout(header);
 
     projectLabel_ = new QLabel("Chưa mở Project");
-    projectLabel_->setObjectName("muted");
+    projectLabel_->setObjectName("project");
     root->addWidget(projectLabel_);
 
-    scoreLabel_ = new QLabel("0  –  0");
-    scoreLabel_->setObjectName("score");
-    scoreLabel_->setAlignment(Qt::AlignCenter);
-    root->addWidget(scoreLabel_);
+    auto *scoreCard = new QFrame();
+    scoreCard->setObjectName("scoreCard");
+    auto *grid = new QGridLayout(scoreCard);
+    grid->setContentsMargins(10, 6, 10, 6);
+    grid->setHorizontalSpacing(8);
+    grid->setVerticalSpacing(0);
+    grid->setColumnStretch(0, 1);
+    grid->setColumnStretch(2, 1);
+
+    teamALabel_ = new QLabel("ĐỘI A");
+    teamALabel_->setObjectName("teamName");
+    teamALabel_->setAlignment(Qt::AlignCenter);
+    teamBLabel_ = new QLabel("ĐỘI B");
+    teamBLabel_->setObjectName("teamName");
+    teamBLabel_->setAlignment(Qt::AlignCenter);
+
+    scoreAValue_ = new QLabel("0");
+    scoreAValue_->setObjectName("scoreValue");
+    scoreAValue_->setAlignment(Qt::AlignCenter);
+    scoreBValue_ = new QLabel("0");
+    scoreBValue_->setObjectName("scoreValue");
+    scoreBValue_->setAlignment(Qt::AlignCenter);
+
+    auto *dash = new QLabel("–");
+    dash->setObjectName("dash");
+    dash->setAlignment(Qt::AlignCenter);
 
     callLabel_ = new QLabel("Game 0–0");
-    callLabel_->setObjectName("muted");
+    callLabel_->setObjectName("call");
     callLabel_->setAlignment(Qt::AlignCenter);
-    root->addWidget(callLabel_);
+    callLabel_->setWordWrap(true);
+
+    grid->addWidget(teamALabel_, 0, 0);
+    grid->addWidget(teamBLabel_, 0, 2);
+    grid->addWidget(scoreAValue_, 1, 0);
+    grid->addWidget(dash, 1, 1);
+    grid->addWidget(scoreBValue_, 1, 2);
+    grid->addWidget(callLabel_, 2, 0, 1, 3);
+    root->addWidget(scoreCard);
+
+    auto *section = new QLabel("CỘNG ĐIỂM");
+    section->setObjectName("section");
+    root->addWidget(section);
 
     auto *scoreRow = new QHBoxLayout();
     scoreRow->setSpacing(6);
-    rallyAButton_ = new QPushButton("ĐỘI A +");
-    rallyBButton_ = new QPushButton("ĐỘI B +");
+    rallyAButton_ = new QPushButton("ĐỘI A  +");
+    rallyAButton_->setObjectName("teamA");
+    rallyBButton_ = new QPushButton("ĐỘI B  +");
+    rallyBButton_->setObjectName("teamB");
     connect(rallyAButton_, &QPushButton::clicked, this, [this]() { sendCommand("rally_a"); });
     connect(rallyBButton_, &QPushButton::clicked, this, [this]() { sendCommand("rally_b"); });
     scoreRow->addWidget(rallyAButton_);
     scoreRow->addWidget(rallyBButton_);
     root->addLayout(scoreRow);
 
-    undoButton_ = new QPushButton("↶ HOÀN TÁC");
+    undoButton_ = new QPushButton("↶  HOÀN TÁC");
+    undoButton_->setObjectName("undo");
     connect(undoButton_, &QPushButton::clicked, this, [this]() { sendCommand("undo"); });
     root->addWidget(undoButton_);
+
+    setConnectionState("waiting", "Đang chờ 10BIT Broadcast Core");
 }
 
 bool TenBitScoreDockWidget::loadRuntime()
@@ -128,7 +254,7 @@ void TenBitScoreDockWidget::ensureConnected()
     if (socket_.state() == QAbstractSocket::ConnectedState || socket_.state() == QAbstractSocket::ConnectingState)
         return;
     if (!loadRuntime()) {
-        setConnectionText("● Mở 10BIT Broadcast", false);
+        setConnectionState("waiting", "Đang chờ ứng dụng 10BIT Broadcast");
         return;
     }
     connectToRuntime();
@@ -138,12 +264,12 @@ void TenBitScoreDockWidget::connectToRuntime()
 {
     socket_.abort();
     socket_.connectToHost(host_, port_);
-    setConnectionText("● Đang kết nối...", false);
+    setConnectionState("waiting", "Đang kết nối 10BIT Broadcast Core");
 }
 
 void TenBitScoreDockWidget::onConnected()
 {
-    setConnectionText("● CONNECTED", true);
+    setConnectionState("connected", "Đã kết nối 10BIT Broadcast Core");
     pollTimer_.start();
     sendCommand("status");
 }
@@ -151,13 +277,13 @@ void TenBitScoreDockWidget::onConnected()
 void TenBitScoreDockWidget::onDisconnected()
 {
     pollTimer_.stop();
-    setConnectionText("● Mất kết nối • đang thử lại", false);
+    setConnectionState("offline", "Mất kết nối 10BIT Broadcast Core");
 }
 
 void TenBitScoreDockWidget::onSocketError()
 {
     pollTimer_.stop();
-    setConnectionText("● Chưa kết nối Core", false);
+    setConnectionState("offline", "Không kết nối được 10BIT Broadcast Core");
 }
 
 void TenBitScoreDockWidget::pollStatus()
@@ -206,26 +332,39 @@ void TenBitScoreDockWidget::applyState(const QJsonObject &state)
     const bool pickleball = sport == "pickleball";
     const auto match = state.value("match").toObject();
 
-    const QString a = teamName(match, "TeamA", "ĐỘI A");
-    const QString b = teamName(match, "TeamB", "ĐỘI B");
+    const QString teamA = teamName(match, "TeamA", "ĐỘI A");
+    const QString teamB = teamName(match, "TeamB", "ĐỘI B");
     const int scoreA = match.value("ScoreA").toInt();
     const int scoreB = match.value("ScoreB").toInt();
     const int gamesA = match.value("GamesA").toInt();
     const int gamesB = match.value("GamesB").toInt();
 
-    projectLabel_->setText(state.value("projectName").toString("Chưa mở Project") + (pickleball ? " • Pickleball" : ""));
-    scoreLabel_->setText(QString("%1   %2 – %3   %4").arg(a).arg(scoreA).arg(scoreB).arg(b));
-    const QString call = state.value("scoreCall").toString();
-    callLabel_->setText(QString("Game %1–%2%3").arg(gamesA).arg(gamesB).arg(call.isEmpty() ? QString() : " • " + call));
-    rallyAButton_->setText(a + " +");
-    rallyBButton_->setText(b + " +");
+    projectLabel_->setText(state.value("projectName").toString("Chưa mở Project") + (pickleball ? "  •  Pickleball" : ""));
+
+    const QFontMetrics fm(teamALabel_->font());
+    teamALabel_->setText(fm.elidedText(teamA, Qt::ElideRight, 125));
+    teamBLabel_->setText(fm.elidedText(teamB, Qt::ElideRight, 125));
+    teamALabel_->setToolTip(teamA);
+    teamBLabel_->setToolTip(teamB);
+    scoreAValue_->setText(QString::number(scoreA));
+    scoreBValue_->setText(QString::number(scoreB));
+
+    const QString call = state.value("scoreCall").toString().trimmed();
+    callLabel_->setText(QString("Game %1–%2%3").arg(gamesA).arg(gamesB)
+        .arg(call.isEmpty() ? QString() : "  •  " + call));
+
+    rallyAButton_->setText(teamA + "  +");
+    rallyBButton_->setText(teamB + "  +");
     rallyAButton_->setEnabled(pickleball);
     rallyBButton_->setEnabled(pickleball);
     undoButton_->setEnabled(pickleball && state.value("canUndo").toBool());
 }
 
-void TenBitScoreDockWidget::setConnectionText(const QString &text, bool online)
+void TenBitScoreDockWidget::setConnectionState(const QString &state, const QString &tooltip)
 {
-    connectionLabel_->setText(text);
-    connectionLabel_->setStyleSheet(online ? "color:#52e28a; font-weight:700;" : "color:#e9b949;");
+    connectionLabel_->setText("●");
+    connectionLabel_->setProperty("state", state);
+    connectionLabel_->setToolTip(tooltip);
+    connectionLabel_->style()->unpolish(connectionLabel_);
+    connectionLabel_->style()->polish(connectionLabel_);
 }
