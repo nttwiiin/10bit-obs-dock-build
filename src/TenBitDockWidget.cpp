@@ -44,7 +44,7 @@ QLabel *sectionLabel(const QString &text)
 }
 }
 
-TenBitDockWidget::TenBitDockWidget(QWidget *parent) : QWidget(parent)
+TenBitDockWidget::TenBitDockWidget(QWidget *parent) : TenBitObsDockContent(parent)
 {
     setObjectName("dockRoot");
     buildUI();
