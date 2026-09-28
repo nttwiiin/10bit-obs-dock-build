@@ -30,7 +30,7 @@ private:
     void connectToRuntime();
     void sendCommand(const QString &command, const QJsonObject &args = {});
     void applyState(const QJsonObject &state);
-    void revealDock();
+    bool revealDock();
     void setConnectionText(const QString &text, bool online);
     QPushButton *makeButton(const QString &text, const QString &command);
     void setActive(QPushButton *button, bool active, const QString &activeText = {}, const QString &inactiveText = {});
