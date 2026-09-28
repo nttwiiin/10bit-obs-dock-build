@@ -307,35 +307,36 @@ void TenBitDockWidget::setActive(QPushButton *button, bool active, const QString
 bool TenBitDockWidget::revealDock()
 {
     QWidget *mainWidget = static_cast<QWidget *>(obs_frontend_get_main_window());
-    if (mainWidget) {
-        if (auto *mainWindow = qobject_cast<QMainWindow *>(mainWidget)) {
-            if (auto *dock = mainWindow->findChild<QDockWidget *>(QStringLiteral("tenbit-broadcast-dock"), Qt::FindChildrenRecursively)) {
-                dock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
-                mainWindow->addDockWidget(Qt::RightDockWidgetArea, dock);
-                dock->setFloating(false);
-                dock->toggleViewAction()->setChecked(true);
-                dock->setVisible(true);
-                dock->show();
-                dock->raise();
-                return dock->isVisible() && !dock->isFloating();
-            }
-        }
-    }
+    if (!mainWidget)
+        return false;
 
-    QWidget *w = this;
-    while (w) {
-        if (auto *dock = qobject_cast<QDockWidget *>(w)) {
-            dock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
-            if (auto *mainWindow = qobject_cast<QMainWindow *>(dock->parentWidget()))
-                mainWindow->addDockWidget(Qt::RightDockWidgetArea, dock);
-            dock->setFloating(false);
-            dock->toggleViewAction()->setChecked(true);
-            dock->setVisible(true);
-            dock->show();
-            dock->raise();
-            return dock->isVisible() && !dock->isFloating();
-        }
-        w = w->parentWidget();
-    }
-    return false;
+    auto *mainWindow = qobject_cast<QMainWindow *>(mainWidget);
+    if (!mainWindow)
+        return false;
+
+    auto *controlDock = mainWindow->findChild<QDockWidget *>(QStringLiteral("tenbit-broadcast-dock"), Qt::FindChildrenRecursively);
+    auto *scoreDock = mainWindow->findChild<QDockWidget *>(QStringLiteral("tenbit-score-dock"), Qt::FindChildrenRecursively);
+    if (!controlDock || !scoreDock)
+        return false;
+
+    controlDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    mainWindow->addDockWidget(Qt::RightDockWidgetArea, controlDock);
+    controlDock->setFloating(false);
+    controlDock->toggleViewAction()->setChecked(true);
+    controlDock->show();
+    controlDock->raise();
+
+    scoreDock->setAllowedAreas(Qt::BottomDockWidgetArea | Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    scoreDock->setFloating(false);
+    auto *controlsDock = mainWindow->findChild<QDockWidget *>(QStringLiteral("controlsDock"), Qt::FindChildrenRecursively);
+    if (controlsDock)
+        mainWindow->splitDockWidget(controlsDock, scoreDock, Qt::Horizontal);
+    else
+        mainWindow->addDockWidget(Qt::BottomDockWidgetArea, scoreDock);
+    scoreDock->toggleViewAction()->setChecked(true);
+    scoreDock->show();
+    scoreDock->raise();
+
+    return controlDock->isVisible() && scoreDock->isVisible() &&
+           !controlDock->isFloating() && !scoreDock->isFloating();
 }
