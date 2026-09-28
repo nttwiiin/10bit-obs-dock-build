@@ -30,6 +30,7 @@ private:
     void connectToRuntime();
     void sendCommand(const QString &command, const QJsonObject &args = {});
     void applyState(const QJsonObject &state);
+    void openReplaySettings();
     bool revealDock();
     void setConnectionState(const QString &state, const QString &tooltip);
     QPushButton *makeButton(const QString &text, const QString &command);
@@ -44,6 +45,8 @@ private:
     QString token_;
     quint64 requestId_ = 0;
     quint64 lastDockShowSeq_ = 0;
+    int replayDurationSec_ = 5;
+    int replaySpeedPercent_ = 50;
 
     QLabel *connectionLabel_ = nullptr;
     QLabel *projectLabel_ = nullptr;
@@ -64,4 +67,6 @@ private:
     QPushButton *rallyBButton_ = nullptr;
     QPushButton *undoButton_ = nullptr;
     QPushButton *finishGameButton_ = nullptr;
+    QPushButton *replaySettingsButton_ = nullptr;
+    QPushButton *recordReplayButton_ = nullptr;
 };
