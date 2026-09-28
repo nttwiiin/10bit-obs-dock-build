@@ -243,7 +243,7 @@ void TenBitDockWidget::buildUI()
 
     auto *replayRow = new QHBoxLayout();
     replayRow->setSpacing(5);
-    replayButton_ = makeButton("REPLAY", "replay");
+    replayButton_ = makeButton("PHÁT REPLAY", "replay");
     replayButton_->setMinimumHeight(38);
     replaySettingsButton_ = new QPushButton(QString::fromUtf8("⚙"));
     replaySettingsButton_->setCursor(Qt::PointingHandCursor);
@@ -484,7 +484,8 @@ void TenBitDockWidget::applyState(const QJsonObject &state)
     replayButton_->setEnabled(replayAvailable);
     replaySettingsButton_->setEnabled(replayAvailable);
     recordReplayButton_->setEnabled(replayAvailable);
-    setActive(replayButton_, replayPlaying, "REPLAY", "REPLAY");
+    setActive(replayButton_, replayPlaying, "●  PHÁT REPLAY", "PHÁT REPLAY");
+    setActive(recordReplayButton_, replayBufferActive, "●  GHI REPLAY", "GHI REPLAY");
 }
 
 void TenBitDockWidget::setConnectionState(const QString &state, const QString &tooltip)
