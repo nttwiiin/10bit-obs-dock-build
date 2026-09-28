@@ -310,14 +310,14 @@ bool TenBitDockWidget::revealDock()
     if (mainWidget) {
         if (auto *mainWindow = qobject_cast<QMainWindow *>(mainWidget)) {
             if (auto *dock = mainWindow->findChild<QDockWidget *>(QStringLiteral("tenbit-broadcast-dock"), Qt::FindChildrenRecursively)) {
-                mainWindow->restoreDockWidget(dock);
+                dock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+                mainWindow->addDockWidget(Qt::RightDockWidgetArea, dock);
+                dock->setFloating(false);
                 dock->toggleViewAction()->setChecked(true);
                 dock->setVisible(true);
                 dock->show();
                 dock->raise();
-                if (dock->isFloating())
-                    dock->activateWindow();
-                return dock->isVisible();
+                return dock->isVisible() && !dock->isFloating();
             }
         }
     }
@@ -325,13 +325,15 @@ bool TenBitDockWidget::revealDock()
     QWidget *w = this;
     while (w) {
         if (auto *dock = qobject_cast<QDockWidget *>(w)) {
+            dock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+            if (auto *mainWindow = qobject_cast<QMainWindow *>(dock->parentWidget()))
+                mainWindow->addDockWidget(Qt::RightDockWidgetArea, dock);
+            dock->setFloating(false);
             dock->toggleViewAction()->setChecked(true);
             dock->setVisible(true);
             dock->show();
             dock->raise();
-            if (dock->isFloating())
-                dock->activateWindow();
-            return dock->isVisible();
+            return dock->isVisible() && !dock->isFloating();
         }
         w = w->parentWidget();
     }
