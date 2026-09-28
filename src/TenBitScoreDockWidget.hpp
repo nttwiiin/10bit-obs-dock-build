@@ -29,7 +29,7 @@ private:
     void connectToRuntime();
     void sendCommand(const QString &command);
     void applyState(const QJsonObject &state);
-    void setConnectionText(const QString &text, bool online);
+    void setConnectionState(const QString &state, const QString &tooltip);
 
     QTcpSocket socket_;
     QTimer reconnectTimer_;
@@ -42,7 +42,10 @@ private:
 
     QLabel *connectionLabel_ = nullptr;
     QLabel *projectLabel_ = nullptr;
-    QLabel *scoreLabel_ = nullptr;
+    QLabel *teamALabel_ = nullptr;
+    QLabel *teamBLabel_ = nullptr;
+    QLabel *scoreAValue_ = nullptr;
+    QLabel *scoreBValue_ = nullptr;
     QLabel *callLabel_ = nullptr;
     QPushButton *rallyAButton_ = nullptr;
     QPushButton *rallyBButton_ = nullptr;
