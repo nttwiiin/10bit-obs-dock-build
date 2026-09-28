@@ -1,6 +1,7 @@
 #include "TenBitDockWidget.hpp"
 
-#include <QDir>\n#include <QDockWidget>
+#include <QDir>
+#include <QDockWidget>
 #include <QFile>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -212,14 +213,16 @@ void TenBitDockWidget::sendCommand(const QString &command, const QJsonObject &ar
     if (!args.isEmpty())
         req.insert("args", args);
     socket_.write(QJsonDocument(req).toJson(QJsonDocument::Compact));
-    socket_.write("\n");
+    socket_.write("
+");
 }
 
 void TenBitDockWidget::onReadyRead()
 {
     readBuffer_.append(socket_.readAll());
     while (true) {
-        const qsizetype pos = readBuffer_.indexOf('\n');
+        const qsizetype pos = readBuffer_.indexOf('
+');
         if (pos < 0)
             break;
         const QByteArray line = readBuffer_.left(pos);
