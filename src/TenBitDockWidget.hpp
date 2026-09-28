@@ -31,7 +31,7 @@ private:
     void sendCommand(const QString &command, const QJsonObject &args = {});
     void applyState(const QJsonObject &state);
     bool revealDock();
-    void setConnectionText(const QString &text, bool online);
+    void setConnectionState(const QString &state, const QString &tooltip);
     QPushButton *makeButton(const QString &text, const QString &command);
     void setActive(QPushButton *button, bool active, const QString &activeText = {}, const QString &inactiveText = {});
 
@@ -47,7 +47,10 @@ private:
 
     QLabel *connectionLabel_ = nullptr;
     QLabel *projectLabel_ = nullptr;
-    QLabel *scoreLabel_ = nullptr;
+    QLabel *teamALabel_ = nullptr;
+    QLabel *teamBLabel_ = nullptr;
+    QLabel *scoreAValue_ = nullptr;
+    QLabel *scoreBValue_ = nullptr;
     QLabel *serveLabel_ = nullptr;
     QLabel *messageLabel_ = nullptr;
 
