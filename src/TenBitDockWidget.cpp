@@ -193,15 +193,13 @@ void TenBitDockWidget::buildUI()
     scoreToggle_ = makeButton("BẢNG ĐIỂM", "toggle_score");
     lowerToggle_ = makeButton("LOWER THIRD", "toggle_lower");
     timeoutButton_ = makeButton("TIME OUT", "timeout");
-    replayButton_ = makeButton("REPLAY", "replay");
     standbyButton_ = makeButton("STANDBY", "standby");
     resultsButton_ = makeButton("KẾT QUẢ", "results");
     graphics->addWidget(scoreToggle_, 0, 0);
     graphics->addWidget(lowerToggle_, 0, 1);
     graphics->addWidget(timeoutButton_, 1, 0);
-    graphics->addWidget(replayButton_, 1, 1);
-    graphics->addWidget(standbyButton_, 2, 0);
-    graphics->addWidget(resultsButton_, 2, 1);
+    graphics->addWidget(standbyButton_, 1, 1);
+    graphics->addWidget(resultsButton_, 2, 0, 1, 2);
     root->addLayout(graphics);
 
     auto *scoreLabel = sectionLabel("ĐIỂM NHANH");
@@ -235,14 +233,13 @@ void TenBitDockWidget::buildUI()
     finishGameButton_ = makeButton("KẾT THÚC GAME", "finish_game");
     root->addWidget(finishGameButton_);
 
-    auto *replayLabel = sectionLabel("REPLAY");
+    auto *replayLabel = sectionLabel("REPLAY 1 CHẠM");
     replayLabel->setObjectName("section");
     root->addWidget(replayLabel);
 
-    replayBufferButton_ = makeButton("REPLAY BUFFER", "toggle_replay_buffer");
-    root->addWidget(replayBufferButton_);
-    saveReplayButton_ = makeButton("LƯU REPLAY", "save_replay");
-    root->addWidget(saveReplayButton_);
+    replayButton_ = makeButton(QString::fromUtf8("↻  REPLAY 1 CHẠM  •  5s  •  0.5×"), "replay");
+    replayButton_->setMinimumHeight(38);
+    root->addWidget(replayButton_);
 
     messageLabel_ = new QLabel();
     messageLabel_->setWordWrap(true);
@@ -404,7 +401,6 @@ void TenBitDockWidget::applyState(const QJsonObject &state)
     setActive(lowerToggle_, graphics.value("ProgramLower").toBool(), "●  LOWER THIRD", "LOWER THIRD");
     const QString takeover = graphics.value("ProgramTakeover").toString();
     setActive(timeoutButton_, takeover == "timeout");
-    setActive(replayButton_, takeover == "replay");
     setActive(standbyButton_, takeover == "standby");
     setActive(resultsButton_, takeover == "results");
 
@@ -417,10 +413,14 @@ void TenBitDockWidget::applyState(const QJsonObject &state)
     undoButton_->setEnabled(pickleball && state.value("canUndo").toBool());
     finishGameButton_->setEnabled(pickleball && gameDone);
     const bool replayAvailable = state.value("replayAvailable").toBool();
-    const bool replayBufferActive = state.value("replayBufferActive").toBool();
-    replayBufferButton_->setEnabled(replayAvailable);
-    setActive(replayBufferButton_, replayBufferActive, "●  REPLAY BUFFER", "REPLAY BUFFER");
-    saveReplayButton_->setEnabled(replayAvailable && replayBufferActive);
+    const bool replayPlaying = state.value("replayPlaying").toBool();
+    const int replaySeconds = qMax(1, state.value("replayDurationSec").toInt(5));
+    const int replaySpeed = qMax(1, state.value("replaySpeedPercent").toInt(50));
+    const QString replayIdle = QString::fromUtf8("↻  REPLAY 1 CHẠM  •  %1s  •  %2×")
+                                   .arg(replaySeconds)
+                                   .arg(QString::number(replaySpeed / 100.0, 'f', replaySpeed % 100 == 0 ? 0 : 2));
+    replayButton_->setEnabled(replayAvailable);
+    setActive(replayButton_, replayPlaying, QString::fromUtf8("■  DỪNG REPLAY • VỀ LIVE"), replayIdle);
 
     if (messageLabel_->isVisible())
         messageLabel_->hide();
