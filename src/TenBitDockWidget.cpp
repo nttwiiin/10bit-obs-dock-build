@@ -1,6 +1,6 @@
 #include "TenBitDockWidget.hpp"
 
-#include <QDir>
+#include <QDir>\n#include <QDockWidget>
 #include <QFile>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -286,4 +286,22 @@ void TenBitDockWidget::setActive(QPushButton *button, bool active, const QString
         button->setText(activeText);
     else if (!active && !inactiveText.isEmpty())
         button->setText(inactiveText);
+}
+
+
+void TenBitDockWidget::revealDock()
+{
+    QWidget *w = this;
+    while (w) {
+        if (auto *dock = qobject_cast<QDockWidget *>(w)) {
+            dock->show();
+            dock->raise();
+            dock->activateWindow();
+            return;
+        }
+        w = w->parentWidget();
+    }
+    show();
+    raise();
+    activateWindow();
 }
