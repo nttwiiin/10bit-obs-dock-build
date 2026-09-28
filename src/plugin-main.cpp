@@ -31,6 +31,12 @@ static void dock_into_obs()
     dock->raise();
 }
 
+static void frontend_event(enum obs_frontend_event event, void *)
+{
+    if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING)
+        QTimer::singleShot(0, dock_into_obs);
+}
+
 MODULE_EXPORT const char *obs_module_description(void)
 {
     return "10BIT Broadcast native control dock";
@@ -46,9 +52,11 @@ bool obs_module_load(void)
         return false;
     }
 
-    // obs_frontend_add_dock_by_id creates the native dock as a floating,
-    // hidden QDockWidget. Defer one event-loop tick, then attach it to the
-    // right side of the OBS main window and show it as a real integrated dock.
+    obs_frontend_add_event_callback(frontend_event, nullptr);
+
+    // The API creates the dock floating/hidden. Attach immediately for an
+    // already-loaded UI, then repeat at FINISHED_LOADING so OBS layout restore
+    // cannot leave the 10BIT panel floating as a separate window.
     QTimer::singleShot(0, dock_into_obs);
 
     blog(LOG_INFO, "[10BIT Dock] loaded (version %s)", PLUGIN_VERSION);
@@ -57,6 +65,7 @@ bool obs_module_load(void)
 
 void obs_module_unload(void)
 {
+    obs_frontend_remove_event_callback(frontend_event, nullptr);
     obs_frontend_remove_dock(kDockId);
     g_dock = nullptr;
     blog(LOG_INFO, "[10BIT Dock] unloaded");
