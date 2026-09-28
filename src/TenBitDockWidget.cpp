@@ -243,6 +243,17 @@ void TenBitDockWidget::onReadyRead()
 
 void TenBitDockWidget::applyState(const QJsonObject &state)
 {
+    const quint64 showSeq = static_cast<quint64>(state.value("dockShowSeq").toDouble());
+    if (showSeq > lastDockShowSeq_) {
+        lastDockShowSeq_ = showSeq;
+        if (revealDock()) {
+            QJsonObject ack;
+            ack.insert("seq", static_cast<double>(showSeq));
+            sendCommand("dock_show_ack", ack);
+            messageLabel_->setText("10BIT Dock đã được bật từ ứng dụng.");
+        }
+    }
+
     const QString sport = state.value("sportModule").toString();
     const bool pickleball = sport == "pickleball";
     projectLabel_->setText(state.value("projectName").toString("Chưa mở Project") + (pickleball ? " • Pickleball" : ""));
