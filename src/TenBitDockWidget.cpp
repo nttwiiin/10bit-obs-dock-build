@@ -232,11 +232,15 @@ void TenBitDockWidget::buildUI()
 
     undoButton_ = makeButton("↶  HOÀN TÁC PHA", "undo");
     root->addWidget(undoButton_);
+    finishGameButton_ = makeButton("KẾT THÚC GAME", "finish_game");
+    root->addWidget(finishGameButton_);
 
     auto *replayLabel = sectionLabel("REPLAY");
     replayLabel->setObjectName("section");
     root->addWidget(replayLabel);
 
+    replayBufferButton_ = makeButton("REPLAY BUFFER", "toggle_replay_buffer");
+    root->addWidget(replayBufferButton_);
     saveReplayButton_ = makeButton("LƯU REPLAY", "save_replay");
     root->addWidget(saveReplayButton_);
 
@@ -404,12 +408,19 @@ void TenBitDockWidget::applyState(const QJsonObject &state)
     setActive(standbyButton_, takeover == "standby");
     setActive(resultsButton_, takeover == "results");
 
+    const bool gameDone = !match.value("GameWinner").toString().isEmpty();
+    const bool matchDone = !match.value("MatchWinner").toString().isEmpty();
     rallyAButton_->setText(teamA + "  +");
     rallyBButton_->setText(teamB + "  +");
-    rallyAButton_->setEnabled(pickleball);
-    rallyBButton_->setEnabled(pickleball);
+    rallyAButton_->setEnabled(pickleball && !gameDone && !matchDone);
+    rallyBButton_->setEnabled(pickleball && !gameDone && !matchDone);
     undoButton_->setEnabled(pickleball && state.value("canUndo").toBool());
-    saveReplayButton_->setEnabled(state.value("replayAvailable").toBool());
+    finishGameButton_->setEnabled(pickleball && gameDone);
+    const bool replayAvailable = state.value("replayAvailable").toBool();
+    const bool replayBufferActive = state.value("replayBufferActive").toBool();
+    replayBufferButton_->setEnabled(replayAvailable);
+    setActive(replayBufferButton_, replayBufferActive, "●  REPLAY BUFFER", "REPLAY BUFFER");
+    saveReplayButton_->setEnabled(replayAvailable && replayBufferActive);
 
     if (messageLabel_->isVisible())
         messageLabel_->hide();
