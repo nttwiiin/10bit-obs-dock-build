@@ -14,6 +14,7 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <QMainWindow>
+#include <QPalette>
 #include <QPushButton>
 #include <QStandardPaths>
 #include <QStyle>
@@ -70,20 +71,48 @@ TenBitDockWidget::TenBitDockWidget(QWidget *parent) : TenBitObsDockContent(paren
 
 void TenBitDockWidget::buildUI()
 {
-    setMinimumWidth(285);
+    setMinimumWidth(292);
 
     auto *panel = new QFrame(this);
     panel->setObjectName("tenbitPanel");
     panel->setStyleSheet(R"(
         QFrame#tenbitPanel { background: transparent; }
         QLabel#statusDot {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 900;
             padding: 0px;
         }
         QLabel#statusDot[state="connected"] { color: #43e58a; }
-        QLabel#statusDot[state="waiting"] { color: #f6c94c; }
-        QLabel#statusDot[state="offline"] { color: #ff5568; }
+        QLabel#statusDot[state="waiting"] { color: #f2c94c; }
+        QLabel#statusDot[state="offline"] { color: #ff5a6d; }
+        QLabel#section {
+            color: palette(mid);
+            font-size: 10px;
+            font-weight: 800;
+            padding-top: 2px;
+        }
+        QFrame#scoreCard {
+            background: palette(base);
+            border: 1px solid palette(mid);
+            border-radius: 5px;
+        }
+        QLabel#teamName {
+            font-size: 10px;
+            font-weight: 700;
+        }
+        QLabel#scoreValue {
+            font-size: 28px;
+            font-weight: 900;
+        }
+        QLabel#scoreDash {
+            color: palette(mid);
+            font-size: 20px;
+            font-weight: 800;
+        }
+        QLabel#call {
+            color: palette(mid);
+            font-size: 10px;
+        }
         QPushButton[active="true"] {
             background: #d91f49;
             border-color: #ff4269;
@@ -97,11 +126,11 @@ void TenBitDockWidget::buildUI()
     outer->addWidget(panel);
 
     auto *root = new QVBoxLayout(panel);
-    root->setContentsMargins(7, 7, 7, 7);
-    root->setSpacing(5);
+    root->setContentsMargins(8, 7, 8, 8);
+    root->setSpacing(6);
 
-    auto *statusRow = new QHBoxLayout();
-    statusRow->setContentsMargins(0, 0, 0, 0);
+    auto *projectRow = new QHBoxLayout();
+    projectRow->setContentsMargins(0, 0, 0, 0);
     projectLabel_ = new QLabel("Chưa mở Project");
     QFont projectFont = projectLabel_->font();
     projectFont.setPointSizeF(qMax(8.0, projectFont.pointSizeF() - 1.0));
@@ -110,53 +139,41 @@ void TenBitDockWidget::buildUI()
     connectionLabel_->setObjectName("statusDot");
     connectionLabel_->setAlignment(Qt::AlignCenter);
     connectionLabel_->setFixedWidth(20);
-    statusRow->addWidget(projectLabel_, 1);
-    statusRow->addWidget(connectionLabel_);
-    root->addLayout(statusRow);
+    projectRow->addWidget(projectLabel_, 1);
+    projectRow->addWidget(connectionLabel_);
+    root->addLayout(projectRow);
 
     auto *scoreCard = new QFrame();
-    scoreCard->setFrameShape(QFrame::StyledPanel);
-    scoreCard->setFrameShadow(QFrame::Plain);
+    scoreCard->setObjectName("scoreCard");
     auto *scoreGrid = new QGridLayout(scoreCard);
-    scoreGrid->setContentsMargins(8, 6, 8, 6);
+    scoreGrid->setContentsMargins(10, 8, 10, 7);
     scoreGrid->setHorizontalSpacing(8);
     scoreGrid->setVerticalSpacing(1);
     scoreGrid->setColumnStretch(0, 1);
     scoreGrid->setColumnStretch(2, 1);
 
     teamALabel_ = new QLabel("ĐỘI A");
+    teamALabel_->setObjectName("teamName");
     teamALabel_->setAlignment(Qt::AlignCenter);
     teamBLabel_ = new QLabel("ĐỘI B");
+    teamBLabel_->setObjectName("teamName");
     teamBLabel_->setAlignment(Qt::AlignCenter);
-    QFont teamFont = teamALabel_->font();
-    teamFont.setBold(true);
-    teamFont.setPointSizeF(qMax(8.0, teamFont.pointSizeF() - 1.0));
-    teamALabel_->setFont(teamFont);
-    teamBLabel_->setFont(teamFont);
 
     scoreAValue_ = new QLabel("0");
+    scoreAValue_->setObjectName("scoreValue");
     scoreAValue_->setAlignment(Qt::AlignCenter);
     scoreBValue_ = new QLabel("0");
+    scoreBValue_->setObjectName("scoreValue");
     scoreBValue_->setAlignment(Qt::AlignCenter);
-    QFont scoreFont = scoreAValue_->font();
-    scoreFont.setBold(true);
-    scoreFont.setPointSizeF(scoreFont.pointSizeF() + 10.0);
-    scoreAValue_->setFont(scoreFont);
-    scoreBValue_->setFont(scoreFont);
 
     auto *dash = new QLabel("–");
+    dash->setObjectName("scoreDash");
     dash->setAlignment(Qt::AlignCenter);
-    QFont dashFont = dash->font();
-    dashFont.setBold(true);
-    dashFont.setPointSizeF(dashFont.pointSizeF() + 5.0);
-    dash->setFont(dashFont);
 
     serveLabel_ = new QLabel("Game 0–0");
+    serveLabel_->setObjectName("call");
     serveLabel_->setAlignment(Qt::AlignCenter);
     serveLabel_->setWordWrap(true);
-    QFont callFont = serveLabel_->font();
-    callFont.setPointSizeF(qMax(8.0, callFont.pointSizeF() - 1.0));
-    serveLabel_->setFont(callFont);
 
     scoreGrid->addWidget(teamALabel_, 0, 0);
     scoreGrid->addWidget(teamBLabel_, 0, 2);
@@ -166,7 +183,10 @@ void TenBitDockWidget::buildUI()
     scoreGrid->addWidget(serveLabel_, 2, 0, 1, 3);
     root->addWidget(scoreCard);
 
-    root->addWidget(sectionLabel("ĐỒ HỌA"));
+    auto *graphicsLabel = sectionLabel("ĐỒ HỌA");
+    graphicsLabel->setObjectName("section");
+    root->addWidget(graphicsLabel);
+
     auto *graphics = new QGridLayout();
     graphics->setHorizontalSpacing(5);
     graphics->setVerticalSpacing(5);
@@ -184,19 +204,39 @@ void TenBitDockWidget::buildUI()
     graphics->addWidget(resultsButton_, 2, 1);
     root->addLayout(graphics);
 
-    root->addWidget(sectionLabel("ĐIỂM NHANH"));
+    auto *scoreLabel = sectionLabel("ĐIỂM NHANH");
+    scoreLabel->setObjectName("section");
+    root->addWidget(scoreLabel);
+
     auto *scoreRow = new QHBoxLayout();
     scoreRow->setSpacing(5);
+
+    auto makeAccentButton = [](QPushButton *button, const QString &color) {
+        auto *box = new QWidget();
+        auto *layout = new QVBoxLayout(box);
+        layout->setContentsMargins(0, 0, 0, 0);
+        layout->setSpacing(2);
+        layout->addWidget(button);
+        auto *line = new QFrame();
+        line->setFixedHeight(2);
+        line->setStyleSheet(QString("background:%1; border:0;").arg(color));
+        layout->addWidget(line);
+        return box;
+    };
+
     rallyAButton_ = makeButton("ĐỘI A +", "rally_a");
     rallyBButton_ = makeButton("ĐỘI B +", "rally_b");
-    scoreRow->addWidget(rallyAButton_);
-    scoreRow->addWidget(rallyBButton_);
+    scoreRow->addWidget(makeAccentButton(rallyAButton_, "#d7b400"));
+    scoreRow->addWidget(makeAccentButton(rallyBButton_, "#d91f49"));
     root->addLayout(scoreRow);
 
-    undoButton_ = makeButton("↶ HOÀN TÁC PHA", "undo");
+    undoButton_ = makeButton("↶  HOÀN TÁC PHA", "undo");
     root->addWidget(undoButton_);
 
-    root->addWidget(sectionLabel("REPLAY"));
+    auto *replayLabel = sectionLabel("REPLAY");
+    replayLabel->setObjectName("section");
+    root->addWidget(replayLabel);
+
     saveReplayButton_ = makeButton("LƯU REPLAY", "save_replay");
     root->addWidget(saveReplayButton_);
 
