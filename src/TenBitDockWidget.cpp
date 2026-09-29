@@ -2,23 +2,22 @@
 
 #include <obs-frontend-api.h>
 
-#include <QDir>
-#include <QDockWidget>
 #include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QDir>
+#include <QDockWidget>
 #include <QFile>
 #include <QFont>
-#include <QFontMetrics>
-#include <QFrame>
 #include <QFormLayout>
+#include <QFrame>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMainWindow>
-#include <QPalette>
 #include <QPushButton>
 #include <QStandardPaths>
 #include <QStyle>
@@ -36,12 +35,6 @@ QString runtimeFilePath()
         .filePath("10BIT Broadcast/dock-runtime.json");
 }
 
-QString sideTeam(const QJsonObject &match, const QString &side)
-{
-    const QString value = match.value(side == "A" ? "TeamA" : "TeamB").toString().trimmed();
-    return value.isEmpty() ? (side == "A" ? "ĐỘI A" : "ĐỘI B") : value;
-}
-
 QLabel *sectionLabel(const QString &text)
 {
     auto *label = new QLabel(text);
@@ -50,6 +43,12 @@ QLabel *sectionLabel(const QString &text)
     font.setPointSizeF(qMax(8.0, font.pointSizeF() - 1.0));
     label->setFont(font);
     return label;
+}
+
+QString matchTeam(const QJsonObject &match, const char *key, const QString &fallback)
+{
+    const QString value = match.value(QString::fromLatin1(key)).toString().trimmed();
+    return value.isEmpty() ? fallback : value;
 }
 }
 
@@ -67,7 +66,7 @@ TenBitDockWidget::TenBitDockWidget(QWidget *parent) : TenBitObsDockContent(paren
     connect(&reconnectTimer_, &QTimer::timeout, this, &TenBitDockWidget::ensureConnected);
     reconnectTimer_.start();
 
-    pollTimer_.setInterval(700);
+    pollTimer_.setInterval(600);
     connect(&pollTimer_, &QTimer::timeout, this, &TenBitDockWidget::pollStatus);
 
     ensureConnected();
@@ -75,58 +74,24 @@ TenBitDockWidget::TenBitDockWidget(QWidget *parent) : TenBitObsDockContent(paren
 
 void TenBitDockWidget::buildUI()
 {
-    setMinimumWidth(292);
+    setMinimumWidth(304);
 
     auto *panel = new QFrame(this);
     panel->setObjectName("tenbitPanel");
     panel->setStyleSheet(R"(
         QFrame#tenbitPanel { background: transparent; }
-        QLabel#statusDot {
-            font-size: 17px;
-            font-weight: 900;
-            padding: 0px;
-        }
-        QLabel#statusDot[state="connected"] { color: #43e58a; }
-        QLabel#statusDot[state="waiting"] { color: #f2c94c; }
-        QLabel#statusDot[state="offline"] { color: #ff5a6d; }
-        QLabel#section {
-            color: palette(mid);
-            font-size: 10px;
-            font-weight: 800;
-            padding-top: 2px;
-        }
-        QFrame#scoreCard {
-            background: palette(base);
-            border: 1px solid palette(mid);
-            border-radius: 5px;
-        }
-        QLabel#teamName {
-            font-size: 10px;
-            font-weight: 700;
-        }
-        QLabel#scoreValue {
-            font-size: 28px;
-            font-weight: 900;
-        }
-        QLabel#scoreDash {
-            color: palette(mid);
-            font-size: 20px;
-            font-weight: 800;
-        }
-        QLabel#call {
-            color: palette(mid);
-            font-size: 10px;
-        }
-        QPushButton[active="true"] {
-            background: #d91f49;
-            border-color: #ff4269;
-            color: #ffffff;
-        }
+        QLabel#statusDot { font-size:17px; font-weight:900; padding:0px; }
+        QLabel#statusDot[state="connected"] { color:#43e58a; }
+        QLabel#statusDot[state="waiting"] { color:#f2c94c; }
+        QLabel#statusDot[state="offline"] { color:#ff5a6d; }
+        QLabel#section { color:palette(mid); font-size:10px; font-weight:800; padding-top:2px; }
+        QLabel#hint { color:palette(mid); font-size:9px; }
+        QLineEdit, QComboBox { min-height:27px; }
+        QPushButton[active="true"] { background:#d91f49; border-color:#ff4269; color:#fff; }
     )");
 
     auto *outer = new QVBoxLayout(this);
     outer->setContentsMargins(0, 0, 0, 0);
-    outer->setSpacing(0);
     outer->addWidget(panel);
 
     auto *root = new QVBoxLayout(panel);
@@ -134,11 +99,7 @@ void TenBitDockWidget::buildUI()
     root->setSpacing(6);
 
     auto *projectRow = new QHBoxLayout();
-    projectRow->setContentsMargins(0, 0, 0, 0);
     projectLabel_ = new QLabel("Chưa mở Project");
-    QFont projectFont = projectLabel_->font();
-    projectFont.setPointSizeF(qMax(8.0, projectFont.pointSizeF() - 1.0));
-    projectLabel_->setFont(projectFont);
     connectionLabel_ = new QLabel("●");
     connectionLabel_->setObjectName("statusDot");
     connectionLabel_->setAlignment(Qt::AlignCenter);
@@ -147,45 +108,53 @@ void TenBitDockWidget::buildUI()
     projectRow->addWidget(connectionLabel_);
     root->addLayout(projectRow);
 
-    auto *scoreCard = new QFrame();
-    scoreCard->setObjectName("scoreCard");
-    auto *scoreGrid = new QGridLayout(scoreCard);
-    scoreGrid->setContentsMargins(10, 8, 10, 7);
-    scoreGrid->setHorizontalSpacing(8);
-    scoreGrid->setVerticalSpacing(1);
-    scoreGrid->setColumnStretch(0, 1);
-    scoreGrid->setColumnStretch(2, 1);
+    auto *infoLabel = sectionLabel("THÔNG TIN TRẬN");
+    infoLabel->setObjectName("section");
+    root->addWidget(infoLabel);
 
-    teamALabel_ = new QLabel("ĐỘI A");
-    teamALabel_->setObjectName("teamName");
-    teamALabel_->setAlignment(Qt::AlignCenter);
-    teamBLabel_ = new QLabel("ĐỘI B");
-    teamBLabel_->setObjectName("teamName");
-    teamBLabel_->setAlignment(Qt::AlignCenter);
+    eventEdit_ = new QLineEdit();
+    eventEdit_->setPlaceholderText("Tên giải");
+    root->addWidget(eventEdit_);
 
-    scoreAValue_ = new QLabel("0");
-    scoreAValue_->setObjectName("scoreValue");
-    scoreAValue_->setAlignment(Qt::AlignCenter);
-    scoreBValue_ = new QLabel("0");
-    scoreBValue_->setObjectName("scoreValue");
-    scoreBValue_->setAlignment(Qt::AlignCenter);
+    auto *roundCourt = new QHBoxLayout();
+    roundCourt->setSpacing(5);
+    roundEdit_ = new QLineEdit();
+    roundEdit_->setPlaceholderText("Vòng đấu");
+    courtEdit_ = new QLineEdit();
+    courtEdit_->setPlaceholderText("Sân đấu");
+    roundCourt->addWidget(roundEdit_);
+    roundCourt->addWidget(courtEdit_);
+    root->addLayout(roundCourt);
 
-    auto *dash = new QLabel("–");
-    dash->setObjectName("scoreDash");
-    dash->setAlignment(Qt::AlignCenter);
+    auto *formatRow = new QHBoxLayout();
+    formatRow->setSpacing(5);
+    formatCombo_ = new QComboBox();
+    formatCombo_->addItem("Đơn", "singles");
+    formatCombo_->addItem("Đôi", "doubles");
+    pointsCombo_ = new QComboBox();
+    pointsCombo_->addItem("Chạm 11", 11);
+    pointsCombo_->addItem("Chạm 15", 15);
+    pointsCombo_->addItem("Chạm 21", 21);
+    formatRow->addWidget(formatCombo_);
+    formatRow->addWidget(pointsCombo_);
+    root->addLayout(formatRow);
 
-    serveLabel_ = new QLabel("Game 0–0");
-    serveLabel_->setObjectName("call");
-    serveLabel_->setAlignment(Qt::AlignCenter);
-    serveLabel_->setWordWrap(true);
+    matchStatusLabel_ = new QLabel("--");
+    matchStatusLabel_->setObjectName("hint");
+    matchStatusLabel_->setWordWrap(true);
+    root->addWidget(matchStatusLabel_);
 
-    scoreGrid->addWidget(teamALabel_, 0, 0);
-    scoreGrid->addWidget(teamBLabel_, 0, 2);
-    scoreGrid->addWidget(scoreAValue_, 1, 0);
-    scoreGrid->addWidget(dash, 1, 1);
-    scoreGrid->addWidget(scoreBValue_, 1, 2);
-    scoreGrid->addWidget(serveLabel_, 2, 0, 1, 3);
-    root->addWidget(scoreCard);
+    connect(eventEdit_, &QLineEdit::editingFinished, this, [this]() { sendMatchSetup(); });
+    connect(roundEdit_, &QLineEdit::editingFinished, this, [this]() { sendMatchSetup(); });
+    connect(courtEdit_, &QLineEdit::editingFinished, this, [this]() { sendMatchSetup(); });
+    connect(formatCombo_, &QComboBox::currentIndexChanged, this, [this](int) {
+        if (!updatingUI_)
+            sendMatchSetup();
+    });
+    connect(pointsCombo_, &QComboBox::currentIndexChanged, this, [this](int) {
+        if (!updatingUI_)
+            sendMatchSetup();
+    });
 
     auto *graphicsLabel = sectionLabel("ĐỒ HỌA");
     graphicsLabel->setObjectName("section");
@@ -195,47 +164,22 @@ void TenBitDockWidget::buildUI()
     graphics->setHorizontalSpacing(5);
     graphics->setVerticalSpacing(5);
     scoreToggle_ = makeButton("BẢNG ĐIỂM", "toggle_score");
-    lowerToggle_ = makeButton("LOWER THIRD", "toggle_lower");
+    adButton_ = makeButton("QUẢNG CÁO", "toggle_ad");
+    teamsButton_ = makeButton("HIỆN TÊN", "toggle_teams");
+    introButton_ = makeButton("INTRO", "intro");
     timeoutButton_ = makeButton("TIME OUT", "timeout");
     standbyButton_ = makeButton("STANDBY", "standby");
+    breakButton_ = makeButton("BREAK", "break");
     resultsButton_ = makeButton("KẾT QUẢ", "results");
     graphics->addWidget(scoreToggle_, 0, 0);
-    graphics->addWidget(lowerToggle_, 0, 1);
-    graphics->addWidget(timeoutButton_, 1, 0);
-    graphics->addWidget(standbyButton_, 1, 1);
-    graphics->addWidget(resultsButton_, 2, 0, 1, 2);
+    graphics->addWidget(adButton_, 0, 1);
+    graphics->addWidget(teamsButton_, 1, 0);
+    graphics->addWidget(introButton_, 1, 1);
+    graphics->addWidget(timeoutButton_, 2, 0);
+    graphics->addWidget(standbyButton_, 2, 1);
+    graphics->addWidget(breakButton_, 3, 0);
+    graphics->addWidget(resultsButton_, 3, 1);
     root->addLayout(graphics);
-
-    auto *scoreLabel = sectionLabel("ĐIỂM NHANH");
-    scoreLabel->setObjectName("section");
-    root->addWidget(scoreLabel);
-
-    auto *scoreRow = new QHBoxLayout();
-    scoreRow->setSpacing(5);
-
-    auto makeAccentButton = [](QPushButton *button, const QString &color) {
-        auto *box = new QWidget();
-        auto *layout = new QVBoxLayout(box);
-        layout->setContentsMargins(0, 0, 0, 0);
-        layout->setSpacing(2);
-        layout->addWidget(button);
-        auto *line = new QFrame();
-        line->setFixedHeight(2);
-        line->setStyleSheet(QString("background:%1; border:0;").arg(color));
-        layout->addWidget(line);
-        return box;
-    };
-
-    rallyAButton_ = makeButton("ĐỘI A +", "rally_a");
-    rallyBButton_ = makeButton("ĐỘI B +", "rally_b");
-    scoreRow->addWidget(makeAccentButton(rallyAButton_, "#d7b400"));
-    scoreRow->addWidget(makeAccentButton(rallyBButton_, "#d91f49"));
-    root->addLayout(scoreRow);
-
-    undoButton_ = makeButton("↶  HOÀN TÁC PHA", "undo");
-    root->addWidget(undoButton_);
-    finishGameButton_ = makeButton("KẾT THÚC GAME", "finish_game");
-    root->addWidget(finishGameButton_);
 
     auto *replayLabel = sectionLabel("REPLAY");
     replayLabel->setObjectName("section");
@@ -244,12 +188,11 @@ void TenBitDockWidget::buildUI()
     auto *replayRow = new QHBoxLayout();
     replayRow->setSpacing(5);
     replayButton_ = makeButton("PHÁT REPLAY", "replay");
-    replayButton_->setMinimumHeight(38);
+    replayButton_->setMinimumHeight(36);
     replaySettingsButton_ = new QPushButton(QString::fromUtf8("⚙"));
-    replaySettingsButton_->setCursor(Qt::PointingHandCursor);
     replaySettingsButton_->setToolTip("Cài đặt Replay");
     replaySettingsButton_->setFixedWidth(42);
-    replaySettingsButton_->setMinimumHeight(38);
+    replaySettingsButton_->setMinimumHeight(36);
     connect(replaySettingsButton_, &QPushButton::clicked, this, [this]() { openReplaySettings(); });
     replayRow->addWidget(replayButton_, 1);
     replayRow->addWidget(replaySettingsButton_);
@@ -257,43 +200,6 @@ void TenBitDockWidget::buildUI()
 
     recordReplayButton_ = makeButton("GHI REPLAY", "record_replay");
     root->addWidget(recordReplayButton_);
-
-    auto *obsLabel = sectionLabel("ĐIỀU KHIỂN OBS");
-    obsLabel->setObjectName("section");
-    root->addWidget(obsLabel);
-
-    obsSceneLabel_ = new QLabel("Program: --");
-    obsSceneLabel_->setObjectName("call");
-    obsSceneLabel_->setWordWrap(true);
-    root->addWidget(obsSceneLabel_);
-
-    auto *sceneRow = new QHBoxLayout();
-    sceneRow->setSpacing(5);
-    obsScenePrevButton_ = makeButton(QString::fromUtf8("◀  SCENE"), "obs_scene_prev");
-    obsSceneNextButton_ = makeButton(QString::fromUtf8("SCENE  ▶"), "obs_scene_next");
-    sceneRow->addWidget(obsScenePrevButton_);
-    sceneRow->addWidget(obsSceneNextButton_);
-    root->addLayout(sceneRow);
-
-    auto *outputRow = new QHBoxLayout();
-    outputRow->setSpacing(5);
-    obsStreamButton_ = makeButton("PHÁT SÓNG", "obs_stream_toggle");
-    obsRecordButton_ = makeButton("GHI HÌNH", "obs_record_toggle");
-    outputRow->addWidget(obsStreamButton_);
-    outputRow->addWidget(obsRecordButton_);
-    root->addLayout(outputRow);
-
-    auto *studioRow = new QHBoxLayout();
-    studioRow->setSpacing(5);
-    obsStudioButton_ = makeButton("STUDIO MODE", "obs_studio_toggle");
-    obsTakeButton_ = makeButton("TAKE", "obs_take");
-    studioRow->addWidget(obsStudioButton_);
-    studioRow->addWidget(obsTakeButton_);
-    root->addLayout(studioRow);
-
-    obsTransitionLabel_ = new QLabel("Transition: --");
-    obsTransitionLabel_->setObjectName("call");
-    root->addWidget(obsTransitionLabel_);
 
     messageLabel_ = new QLabel();
     messageLabel_->setWordWrap(true);
@@ -310,6 +216,19 @@ QPushButton *TenBitDockWidget::makeButton(const QString &text, const QString &co
     button->setCursor(Qt::PointingHandCursor);
     connect(button, &QPushButton::clicked, this, [this, command]() { sendCommand(command); });
     return button;
+}
+
+void TenBitDockWidget::sendMatchSetup()
+{
+    if (updatingUI_)
+        return;
+    QJsonObject args;
+    args.insert("event", eventEdit_->text().trimmed());
+    args.insert("round", roundEdit_->text().trimmed());
+    args.insert("court", courtEdit_->text().trimmed());
+    args.insert("format", formatCombo_->currentData().toString());
+    args.insert("points", pointsCombo_->currentData().toInt());
+    sendCommand("set_match_setup", args);
 }
 
 void TenBitDockWidget::openReplaySettings()
@@ -338,11 +257,9 @@ void TenBitDockWidget::openReplaySettings()
     form->addRow("Đoạn nguồn:", duration);
     form->addRow("Tốc độ phát:", speed);
     layout->addLayout(form);
-
     auto *hint = new QLabel("Ví dụ: 3 giây ở 50% = khoảng 6 giây phát lại.", &dialog);
     hint->setWordWrap(true);
     layout->addWidget(hint);
-
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
     connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
@@ -432,14 +349,16 @@ void TenBitDockWidget::sendCommand(const QString &command, const QJsonObject &ar
     if (!args.isEmpty())
         req.insert("args", args);
     socket_.write(QJsonDocument(req).toJson(QJsonDocument::Compact));
-    socket_.write("\n");
+    socket_.write("
+");
 }
 
 void TenBitDockWidget::onReadyRead()
 {
     readBuffer_.append(socket_.readAll());
     while (true) {
-        const qsizetype pos = readBuffer_.indexOf('\n');
+        const qsizetype pos = readBuffer_.indexOf('
+');
         if (pos < 0)
             break;
         const QByteArray line = readBuffer_.left(pos);
@@ -480,40 +399,44 @@ void TenBitDockWidget::applyState(const QJsonObject &state)
 
     const auto match = state.value("match").toObject();
     const auto graphics = state.value("graphics").toObject();
-    const QString teamA = sideTeam(match, "A");
-    const QString teamB = sideTeam(match, "B");
+    const QString teamA = matchTeam(match, "TeamA", "ĐỘI A");
+    const QString teamB = matchTeam(match, "TeamB", "ĐỘI B");
     const int scoreA = match.value("ScoreA").toInt();
     const int scoreB = match.value("ScoreB").toInt();
     const int gamesA = match.value("GamesA").toInt();
     const int gamesB = match.value("GamesB").toInt();
 
-    const QFontMetrics fm(teamALabel_->font());
-    teamALabel_->setText(fm.elidedText(teamA, Qt::ElideRight, 112));
-    teamBLabel_->setText(fm.elidedText(teamB, Qt::ElideRight, 112));
-    teamALabel_->setToolTip(teamA);
-    teamBLabel_->setToolTip(teamB);
-    scoreAValue_->setText(QString::number(scoreA));
-    scoreBValue_->setText(QString::number(scoreB));
+    updatingUI_ = true;
+    if (!eventEdit_->hasFocus())
+        eventEdit_->setText(match.value("Event").toString());
+    if (!roundEdit_->hasFocus())
+        roundEdit_->setText(match.value("Round").toString());
+    if (!courtEdit_->hasFocus())
+        courtEdit_->setText(match.value("Court").toString());
+    const int formatIndex = formatCombo_->findData(match.value("Format").toString("doubles"));
+    if (formatIndex >= 0)
+        formatCombo_->setCurrentIndex(formatIndex);
+    const int pointIndex = pointsCombo_->findData(match.value("PointsToWin").toInt(11));
+    if (pointIndex >= 0)
+        pointsCombo_->setCurrentIndex(pointIndex);
+    updatingUI_ = false;
 
-    const QString call = state.value("scoreCall").toString().trimmed();
-    serveLabel_->setText(QString("Game %1–%2%3").arg(gamesA).arg(gamesB)
-        .arg(call.isEmpty() ? QString() : "  •  " + call));
+    const QString formatText = match.value("Format").toString() == "singles" ? "Đơn" : "Đôi";
+    matchStatusLabel_->setText(QString("%1  %2–%3  %4   •   Game %5–%6   •   Chạm %7")
+        .arg(teamA).arg(scoreA).arg(scoreB).arg(teamB).arg(gamesA).arg(gamesB).arg(match.value("PointsToWin").toInt(11))
+        + "   •   " + formatText);
 
     setActive(scoreToggle_, graphics.value("ProgramScore").toBool(), "●  BẢNG ĐIỂM", "BẢNG ĐIỂM");
-    setActive(lowerToggle_, graphics.value("ProgramLower").toBool(), "●  LOWER THIRD", "LOWER THIRD");
+    setActive(adButton_, state.value("adVisible").toBool(), "●  QUẢNG CÁO", "QUẢNG CÁO");
+    setActive(teamsButton_, graphics.value("ProgramTeams").toBool(), "●  HIỆN TÊN", "HIỆN TÊN");
+
     const QString takeover = graphics.value("ProgramTakeover").toString();
+    setActive(introButton_, takeover == "match");
     setActive(timeoutButton_, takeover == "timeout");
     setActive(standbyButton_, takeover == "standby");
+    setActive(breakButton_, takeover == "break");
     setActive(resultsButton_, takeover == "results");
 
-    const bool gameDone = !match.value("GameWinner").toString().isEmpty();
-    const bool matchDone = !match.value("MatchWinner").toString().isEmpty();
-    rallyAButton_->setText(teamA + "  +");
-    rallyBButton_->setText(teamB + "  +");
-    rallyAButton_->setEnabled(pickleball && !gameDone && !matchDone);
-    rallyBButton_->setEnabled(pickleball && !gameDone && !matchDone);
-    undoButton_->setEnabled(pickleball && state.value("canUndo").toBool());
-    finishGameButton_->setEnabled(pickleball && gameDone);
     const bool replayAvailable = state.value("replayAvailable").toBool();
     const bool replayBufferActive = state.value("replayBufferActive").toBool();
     const bool replayPlaying = state.value("replayPlaying").toBool();
@@ -524,35 +447,6 @@ void TenBitDockWidget::applyState(const QJsonObject &state)
     recordReplayButton_->setEnabled(replayAvailable);
     setActive(replayButton_, replayPlaying, "●  PHÁT REPLAY", "PHÁT REPLAY");
     setActive(recordReplayButton_, replayBufferActive, "●  GHI REPLAY", "GHI REPLAY");
-
-    const bool obsConnected = state.value("obsConnected").toBool();
-    const bool obsStudio = state.value("obsStudioMode").toBool();
-    const bool obsStream = state.value("obsStreamActive").toBool();
-    const bool obsRecord = state.value("obsRecordActive").toBool();
-    const QString programScene = state.value("obsProgramScene").toString();
-    const QString previewScene = state.value("obsPreviewScene").toString();
-    QString sceneText = programScene.isEmpty() ? "Program: --" : "Program: " + programScene;
-    if (obsStudio && !previewScene.isEmpty())
-        sceneText += "\nPreview: " + previewScene;
-    obsSceneLabel_->setText(sceneText);
-    obsSceneLabel_->setToolTip(sceneText);
-
-    const QString transitionName = state.value("obsTransition").toString();
-    const int transitionMs = state.value("obsTransitionMs").toInt();
-    obsTransitionLabel_->setText(transitionName.isEmpty()
-        ? "Transition: --"
-        : QString("Transition: %1 • %2ms").arg(transitionName).arg(transitionMs));
-
-    const bool sceneControls = obsConnected && !replayPlaying;
-    obsScenePrevButton_->setEnabled(sceneControls);
-    obsSceneNextButton_->setEnabled(sceneControls);
-    obsStreamButton_->setEnabled(obsConnected);
-    obsRecordButton_->setEnabled(obsConnected);
-    obsStudioButton_->setEnabled(sceneControls);
-    obsTakeButton_->setEnabled(sceneControls && obsStudio);
-    setActive(obsStreamButton_, obsStream, "●  PHÁT SÓNG", "PHÁT SÓNG");
-    setActive(obsRecordButton_, obsRecord, "●  GHI HÌNH", "GHI HÌNH");
-    setActive(obsStudioButton_, obsStudio, "●  STUDIO MODE", "STUDIO MODE");
 }
 
 void TenBitDockWidget::setConnectionState(const QString &state, const QString &tooltip)
@@ -580,7 +474,6 @@ bool TenBitDockWidget::revealDock()
     QWidget *mainWidget = static_cast<QWidget *>(obs_frontend_get_main_window());
     if (!mainWidget)
         return false;
-
     auto *mainWindow = qobject_cast<QMainWindow *>(mainWidget);
     if (!mainWindow)
         return false;
@@ -608,6 +501,5 @@ bool TenBitDockWidget::revealDock()
     scoreDock->show();
     scoreDock->raise();
 
-    return controlDock->isVisible() && scoreDock->isVisible() &&
-           !controlDock->isFloating() && !scoreDock->isFloating();
+    return controlDock->isVisible() && scoreDock->isVisible() && !controlDock->isFloating() && !scoreDock->isFloating();
 }
