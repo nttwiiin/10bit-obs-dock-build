@@ -56,6 +56,8 @@ private:
     QLabel *scoreBValue_ = nullptr;
     QLabel *serveLabel_ = nullptr;
     QLabel *messageLabel_ = nullptr;
+    QLabel *obsSceneLabel_ = nullptr;
+    QLabel *obsTransitionLabel_ = nullptr;
 
     QPushButton *scoreToggle_ = nullptr;
     QPushButton *lowerToggle_ = nullptr;
@@ -69,4 +71,10 @@ private:
     QPushButton *finishGameButton_ = nullptr;
     QPushButton *replaySettingsButton_ = nullptr;
     QPushButton *recordReplayButton_ = nullptr;
+    QPushButton *obsScenePrevButton_ = nullptr;
+    QPushButton *obsSceneNextButton_ = nullptr;
+    QPushButton *obsStreamButton_ = nullptr;
+    QPushButton *obsRecordButton_ = nullptr;
+    QPushButton *obsStudioButton_ = nullptr;
+    QPushButton *obsTakeButton_ = nullptr;
 };
