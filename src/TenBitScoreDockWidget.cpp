@@ -116,8 +116,8 @@ void TenBitScoreDockWidget::buildUI()
     teamBEdit_ = new QLineEdit();
     teamAEdit_->setPlaceholderText("Đội A");
     teamBEdit_->setPlaceholderText("Đội B");
-    saveTeamsButton_ = new QPushButton("LƯU");
-    saveTeamsButton_->setFixedWidth(50);
+    saveTeamsButton_ = new QPushButton("LUU");
+    saveTeamsButton_->setFixedWidth(58);
     saveTeamsButton_->setToolTip("Lưu tên hai đội");
     connect(saveTeamsButton_, &QPushButton::clicked, this, &TenBitScoreDockWidget::sendTeamNames);
     teamRow->addWidget(teamAEdit_, 1);
@@ -179,12 +179,15 @@ void TenBitScoreDockWidget::buildUI()
 
     auto *actionRow = new QHBoxLayout();
     actionRow->setSpacing(5);
-    undoButton_ = new QPushButton("↶ HOÀN TÁC");
-    swapButton_ = new QPushButton("⇄ ĐỔI VỊ TRÍ");
-    finishGameButton_ = new QPushButton("KẾT THÚC GAME");
+    undoButton_ = new QPushButton("HOAN TAC");
+    swapButton_ = new QPushButton("DOI VI TRI");
+    finishGameButton_ = new QPushButton("KET THUC GAME");
     connect(undoButton_, &QPushButton::clicked, this, [this]() { sendCommand("undo"); });
     connect(swapButton_, &QPushButton::clicked, this, [this]() { sendCommand("swap_sides"); });
     connect(finishGameButton_, &QPushButton::clicked, this, [this]() { sendCommand("finish_game"); });
+    undoButton_->setMinimumWidth(118);
+    swapButton_->setMinimumWidth(132);
+    finishGameButton_->setMinimumWidth(142);
     actionRow->addWidget(undoButton_);
     actionRow->addWidget(swapButton_);
     actionRow->addWidget(finishGameButton_);
@@ -192,7 +195,7 @@ void TenBitScoreDockWidget::buildUI()
 
     auto *winnerRow = new QHBoxLayout();
     winnerRow->setSpacing(7);
-    auto *winnerLabel = new QLabel("THẮNG:");
+    auto *winnerLabel = new QLabel("THANG:");
     winnerLabel->setObjectName("winnerLabel");
     winnerAButton_ = new QRadioButton("ĐỘI A");
     winnerBButton_ = new QRadioButton("ĐỘI B");
@@ -200,8 +203,8 @@ void TenBitScoreDockWidget::buildUI()
     winnerGroup_->setExclusive(true);
     winnerGroup_->addButton(winnerAButton_);
     winnerGroup_->addButton(winnerBButton_);
-    clearWinnerButton_ = new QPushButton("BỎ CHỌN");
-    clearWinnerButton_->setFixedWidth(82);
+    clearWinnerButton_ = new QPushButton("BO CHON");
+    clearWinnerButton_->setFixedWidth(92);
     clearWinnerButton_->setMinimumHeight(26);
     clearWinnerButton_->setToolTip("Bỏ lựa chọn đội thắng thủ công");
     winnerRow->addWidget(winnerLabel);
