@@ -3,7 +3,6 @@
 
 #include <QDockWidget>
 #include <QMainWindow>
-#include <QSettings>
 #include <QTimer>
 
 #include "TenBitDockWidget.hpp"
@@ -25,59 +24,49 @@ static QDockWidget *findDock(QMainWindow *mainWindow, const char *id)
     return mainWindow->findChild<QDockWidget *>(QString::fromUtf8(id), Qt::FindChildrenRecursively);
 }
 
+static void attach_control_dock(QMainWindow *mainWindow)
+{
+    auto *dock = findDock(mainWindow, kControlDockId);
+    if (!dock)
+        return;
+    dock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    mainWindow->addDockWidget(Qt::RightDockWidgetArea, dock);
+    dock->setFloating(false);
+    dock->toggleViewAction()->setChecked(true);
+    dock->show();
+    dock->raise();
+}
+
+static void attach_score_dock(QMainWindow *mainWindow)
+{
+    auto *scoreDock = findDock(mainWindow, kScoreDockId);
+    if (!scoreDock)
+        return;
+    scoreDock->setAllowedAreas(Qt::BottomDockWidgetArea | Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    scoreDock->setFloating(false);
+    auto *controlsDock = mainWindow->findChild<QDockWidget *>(QStringLiteral("controlsDock"), Qt::FindChildrenRecursively);
+    if (controlsDock)
+        mainWindow->splitDockWidget(controlsDock, scoreDock, Qt::Horizontal);
+    else
+        mainWindow->addDockWidget(Qt::BottomDockWidgetArea, scoreDock);
+    scoreDock->toggleViewAction()->setChecked(true);
+    scoreDock->show();
+    scoreDock->raise();
+}
+
 static void dock_into_obs()
 {
     auto *mainWindow = static_cast<QMainWindow *>(obs_frontend_get_main_window());
     if (!mainWindow)
         return;
-
-    auto *controlDock = findDock(mainWindow, kControlDockId);
-    auto *scoreDock = findDock(mainWindow, kScoreDockId);
-    if (!controlDock || !scoreDock)
-        return;
-
-    controlDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
-    scoreDock->setAllowedAreas(Qt::BottomDockWidgetArea | Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
-    controlDock->setFloating(false);
-    scoreDock->setFloating(false);
-
-    // Apply the 10BIT default workspace only once per layout version.
-    // Afterwards OBS keeps the operator's own dock arrangement.
-    QSettings settings(QStringLiteral("10BIT Media"), QStringLiteral("10BIT Broadcast OBS Dock"));
-    const int applied = settings.value(QStringLiteral("defaultLayoutVersion"), 0).toInt();
-    constexpr int wanted = 4;
-
-    if (applied < wanted) {
-        mainWindow->addDockWidget(Qt::RightDockWidgetArea, controlDock);
-
-        auto *sourcesDock = mainWindow->findChild<QDockWidget *>(QStringLiteral("sourcesDock"), Qt::FindChildrenRecursively);
-        auto *scenesDock = mainWindow->findChild<QDockWidget *>(QStringLiteral("scenesDock"), Qt::FindChildrenRecursively);
-
-        mainWindow->addDockWidget(Qt::LeftDockWidgetArea, scoreDock);
-        if (sourcesDock) {
-            if (scenesDock)
-                mainWindow->tabifyDockWidget(sourcesDock, scenesDock);
-            mainWindow->tabifyDockWidget(sourcesDock, scoreDock);
-        } else if (scenesDock) {
-            mainWindow->tabifyDockWidget(scenesDock, scoreDock);
-        }
-
-        settings.setValue(QStringLiteral("defaultLayoutVersion"), wanted);
-        settings.sync();
-    }
-
-    controlDock->toggleViewAction()->setChecked(true);
-    scoreDock->toggleViewAction()->setChecked(true);
-    controlDock->show();
-    scoreDock->show();
-    controlDock->raise();
-    scoreDock->raise();
+    attach_control_dock(mainWindow);
+    attach_score_dock(mainWindow);
 }
 
 static void frontend_event(enum obs_frontend_event event, void *)
 {
     if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING)
-        QTimer::singleShot(350, dock_into_obs);
+        QTimer::singleShot(0, dock_into_obs);
 }
 
 MODULE_EXPORT const char *obs_module_description(void)
@@ -106,6 +95,7 @@ bool obs_module_load(void)
     }
 
     obs_frontend_add_event_callback(frontend_event, nullptr);
+    QTimer::singleShot(0, dock_into_obs);
 
     // Do not place docks here. OBS still restores its saved workspace after
     // plugin load. Placement is applied once after FINISHED_LOADING instead.
