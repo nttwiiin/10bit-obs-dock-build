@@ -493,7 +493,7 @@ bool TenBitDockWidget::revealDock()
     // Apply this only once so the operator can freely rearrange docks afterwards.
     QSettings settings(QStringLiteral("10BIT Media"), QStringLiteral("10BIT Broadcast OBS Dock"));
     const int appliedLayoutVersion = settings.value(QStringLiteral("defaultLayoutVersion"), 0).toInt();
-    constexpr int wantedLayoutVersion = 2;
+    constexpr int wantedLayoutVersion = 3;
 
     if (appliedLayoutVersion < wantedLayoutVersion) {
         mainWindow->addDockWidget(Qt::RightDockWidgetArea, controlDock);
@@ -503,6 +503,8 @@ bool TenBitDockWidget::revealDock()
 
         if (sourcesDock) {
             mainWindow->addDockWidget(Qt::LeftDockWidgetArea, scoreDock);
+            if (scenesDock)
+                mainWindow->tabifyDockWidget(sourcesDock, scenesDock);
             mainWindow->tabifyDockWidget(sourcesDock, scoreDock);
         } else if (scenesDock) {
             mainWindow->addDockWidget(Qt::LeftDockWidgetArea, scoreDock);
