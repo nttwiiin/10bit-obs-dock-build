@@ -349,16 +349,14 @@ void TenBitDockWidget::sendCommand(const QString &command, const QJsonObject &ar
     if (!args.isEmpty())
         req.insert("args", args);
     socket_.write(QJsonDocument(req).toJson(QJsonDocument::Compact));
-    socket_.write("
-");
+    socket_.write("\n");
 }
 
 void TenBitDockWidget::onReadyRead()
 {
     readBuffer_.append(socket_.readAll());
     while (true) {
-        const qsizetype pos = readBuffer_.indexOf('
-');
+        const qsizetype pos = readBuffer_.indexOf('\n');
         if (pos < 0)
             break;
         const QByteArray line = readBuffer_.left(pos);
