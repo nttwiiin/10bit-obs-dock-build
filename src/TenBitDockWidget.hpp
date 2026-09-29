@@ -2,12 +2,13 @@
 
 #include <QByteArray>
 #include <QJsonObject>
-#include <QPointer>
 #include <QTcpSocket>
 #include <QTimer>
 #include "TenBitObsDockContent.hpp"
 
+class QComboBox;
 class QLabel;
+class QLineEdit;
 class QPushButton;
 
 class TenBitDockWidget final : public TenBitObsDockContent {
@@ -29,6 +30,7 @@ private:
     bool loadRuntime();
     void connectToRuntime();
     void sendCommand(const QString &command, const QJsonObject &args = {});
+    void sendMatchSetup();
     void applyState(const QJsonObject &state);
     void openReplaySettings();
     bool revealDock();
@@ -47,34 +49,28 @@ private:
     quint64 lastDockShowSeq_ = 0;
     int replayDurationSec_ = 5;
     int replaySpeedPercent_ = 50;
+    bool updatingUI_ = false;
 
     QLabel *connectionLabel_ = nullptr;
     QLabel *projectLabel_ = nullptr;
-    QLabel *teamALabel_ = nullptr;
-    QLabel *teamBLabel_ = nullptr;
-    QLabel *scoreAValue_ = nullptr;
-    QLabel *scoreBValue_ = nullptr;
-    QLabel *serveLabel_ = nullptr;
+    QLabel *matchStatusLabel_ = nullptr;
     QLabel *messageLabel_ = nullptr;
-    QLabel *obsSceneLabel_ = nullptr;
-    QLabel *obsTransitionLabel_ = nullptr;
+
+    QLineEdit *eventEdit_ = nullptr;
+    QLineEdit *roundEdit_ = nullptr;
+    QLineEdit *courtEdit_ = nullptr;
+    QComboBox *formatCombo_ = nullptr;
+    QComboBox *pointsCombo_ = nullptr;
 
     QPushButton *scoreToggle_ = nullptr;
-    QPushButton *lowerToggle_ = nullptr;
+    QPushButton *adButton_ = nullptr;
+    QPushButton *teamsButton_ = nullptr;
+    QPushButton *introButton_ = nullptr;
     QPushButton *timeoutButton_ = nullptr;
-    QPushButton *replayButton_ = nullptr;
     QPushButton *standbyButton_ = nullptr;
+    QPushButton *breakButton_ = nullptr;
     QPushButton *resultsButton_ = nullptr;
-    QPushButton *rallyAButton_ = nullptr;
-    QPushButton *rallyBButton_ = nullptr;
-    QPushButton *undoButton_ = nullptr;
-    QPushButton *finishGameButton_ = nullptr;
+    QPushButton *replayButton_ = nullptr;
     QPushButton *replaySettingsButton_ = nullptr;
     QPushButton *recordReplayButton_ = nullptr;
-    QPushButton *obsScenePrevButton_ = nullptr;
-    QPushButton *obsSceneNextButton_ = nullptr;
-    QPushButton *obsStreamButton_ = nullptr;
-    QPushButton *obsRecordButton_ = nullptr;
-    QPushButton *obsStudioButton_ = nullptr;
-    QPushButton *obsTakeButton_ = nullptr;
 };
