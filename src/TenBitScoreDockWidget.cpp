@@ -1,17 +1,18 @@
 #include "TenBitScoreDockWidget.hpp"
 
+#include <QButtonGroup>
 #include <QDir>
 #include <QFile>
 #include <QFont>
-#include <QFontMetrics>
 #include <QFrame>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
-#include <QPalette>
+#include <QLineEdit>
 #include <QPushButton>
+#include <QRadioButton>
 #include <QStandardPaths>
 #include <QStyle>
 #include <QVBoxLayout>
@@ -59,7 +60,7 @@ TenBitScoreDockWidget::TenBitScoreDockWidget(QWidget *parent) : TenBitObsDockCon
     connect(&reconnectTimer_, &QTimer::timeout, this, &TenBitScoreDockWidget::ensureConnected);
     reconnectTimer_.start();
 
-    pollTimer_.setInterval(500);
+    pollTimer_.setInterval(450);
     connect(&pollTimer_, &QTimer::timeout, this, &TenBitScoreDockWidget::pollStatus);
 
     ensureConnected();
@@ -67,53 +68,28 @@ TenBitScoreDockWidget::TenBitScoreDockWidget(QWidget *parent) : TenBitObsDockCon
 
 void TenBitScoreDockWidget::buildUI()
 {
-    setMinimumWidth(300);
+    setMinimumWidth(330);
 
     auto *panel = new QFrame(this);
     panel->setObjectName("tenbitScorePanel");
     panel->setStyleSheet(R"(
         QFrame#tenbitScorePanel { background: transparent; }
-        QLabel#statusDot {
-            font-size: 17px;
-            font-weight: 900;
-            padding: 0px;
-        }
-        QLabel#statusDot[state="connected"] { color: #43e58a; }
-        QLabel#statusDot[state="waiting"] { color: #f2c94c; }
-        QLabel#statusDot[state="offline"] { color: #ff5a6d; }
-        QLabel#section {
-            color: palette(mid);
-            font-size: 10px;
-            font-weight: 800;
-            padding-top: 1px;
-        }
-        QFrame#scoreCard {
-            background: palette(base);
-            border: 1px solid palette(mid);
-            border-radius: 5px;
-        }
-        QLabel#teamName {
-            font-size: 10px;
-            font-weight: 700;
-        }
-        QLabel#scoreValue {
-            font-size: 31px;
-            font-weight: 900;
-        }
-        QLabel#dash {
-            color: palette(mid);
-            font-size: 20px;
-            font-weight: 800;
-        }
-        QLabel#call {
-            color: palette(mid);
-            font-size: 10px;
-        }
+        QLabel#statusDot { font-size:17px; font-weight:900; padding:0px; }
+        QLabel#statusDot[state="connected"] { color:#43e58a; }
+        QLabel#statusDot[state="waiting"] { color:#f2c94c; }
+        QLabel#statusDot[state="offline"] { color:#ff5a6d; }
+        QLabel#section { color:palette(mid); font-size:10px; font-weight:800; padding-top:1px; }
+        QFrame#scoreCard { background:palette(base); border:1px solid palette(mid); border-radius:5px; }
+        QLabel#teamName { font-size:10px; font-weight:700; }
+        QLabel#scoreValue { font-size:31px; font-weight:900; }
+        QLabel#dash { color:palette(mid); font-size:20px; font-weight:800; }
+        QLabel#call { color:palette(mid); font-size:10px; }
+        QLineEdit { min-height:27px; }
+        QRadioButton { min-height:26px; }
     )");
 
     auto *outer = new QVBoxLayout(this);
     outer->setContentsMargins(0, 0, 0, 0);
-    outer->setSpacing(0);
     outer->addWidget(panel);
 
     auto *root = new QVBoxLayout(panel);
@@ -121,11 +97,7 @@ void TenBitScoreDockWidget::buildUI()
     root->setSpacing(6);
 
     auto *projectRow = new QHBoxLayout();
-    projectRow->setContentsMargins(0, 0, 0, 0);
     projectLabel_ = new QLabel("Chưa mở Project");
-    QFont projectFont = projectLabel_->font();
-    projectFont.setPointSizeF(qMax(8.0, projectFont.pointSizeF() - 1.0));
-    projectLabel_->setFont(projectFont);
     connectionLabel_ = new QLabel("●");
     connectionLabel_->setObjectName("statusDot");
     connectionLabel_->setAlignment(Qt::AlignCenter);
@@ -133,6 +105,23 @@ void TenBitScoreDockWidget::buildUI()
     projectRow->addWidget(projectLabel_, 1);
     projectRow->addWidget(connectionLabel_);
     root->addLayout(projectRow);
+
+    auto *teamsSection = sectionLabel("TÊN 2 ĐỘI");
+    teamsSection->setObjectName("section");
+    root->addWidget(teamsSection);
+
+    auto *teamRow = new QHBoxLayout();
+    teamRow->setSpacing(6);
+    teamAEdit_ = new QLineEdit();
+    teamBEdit_ = new QLineEdit();
+    teamAEdit_->setPlaceholderText("Đội A");
+    teamBEdit_->setPlaceholderText("Đội B");
+    teamRow->addWidget(teamAEdit_);
+    teamRow->addWidget(teamBEdit_);
+    root->addLayout(teamRow);
+    saveTeamsButton_ = new QPushButton("LƯU TÊN 2 ĐỘI");
+    connect(saveTeamsButton_, &QPushButton::clicked, this, &TenBitScoreDockWidget::sendTeamNames);
+    root->addWidget(saveTeamsButton_);
 
     auto *scoreCard = new QFrame();
     scoreCard->setObjectName("scoreCard");
@@ -149,18 +138,15 @@ void TenBitScoreDockWidget::buildUI()
     teamBLabel_ = new QLabel("ĐỘI B");
     teamBLabel_->setObjectName("teamName");
     teamBLabel_->setAlignment(Qt::AlignCenter);
-
     scoreAValue_ = new QLabel("0");
     scoreAValue_->setObjectName("scoreValue");
     scoreAValue_->setAlignment(Qt::AlignCenter);
     scoreBValue_ = new QLabel("0");
     scoreBValue_->setObjectName("scoreValue");
     scoreBValue_->setAlignment(Qt::AlignCenter);
-
     auto *dash = new QLabel("–");
     dash->setObjectName("dash");
     dash->setAlignment(Qt::AlignCenter);
-
     callLabel_ = new QLabel("Game 0–0");
     callLabel_->setObjectName("call");
     callLabel_->setAlignment(Qt::AlignCenter);
@@ -180,7 +166,6 @@ void TenBitScoreDockWidget::buildUI()
 
     auto *scoreRow = new QHBoxLayout();
     scoreRow->setSpacing(6);
-
     auto makeAccentButton = [](QPushButton *button, const QString &color) {
         auto *box = new QWidget();
         auto *layout = new QVBoxLayout(box);
@@ -206,15 +191,48 @@ void TenBitScoreDockWidget::buildUI()
     scoreRow->addWidget(makeAccentButton(rallyBButton_, "#d91f49"));
     root->addLayout(scoreRow);
 
+    auto *actionRow = new QHBoxLayout();
+    actionRow->setSpacing(6);
     undoButton_ = new QPushButton("↶  HOÀN TÁC");
+    swapButton_ = new QPushButton("⇄  ĐỔI VỊ TRÍ");
     connect(undoButton_, &QPushButton::clicked, this, [this]() { sendCommand("undo"); });
-    root->addWidget(undoButton_);
+    connect(swapButton_, &QPushButton::clicked, this, [this]() { sendCommand("swap_sides"); });
+    actionRow->addWidget(undoButton_);
+    actionRow->addWidget(swapButton_);
+    root->addLayout(actionRow);
+
     finishGameButton_ = new QPushButton("KẾT THÚC GAME");
     connect(finishGameButton_, &QPushButton::clicked, this, [this]() { sendCommand("finish_game"); });
     root->addWidget(finishGameButton_);
 
-    root->addStretch(1);
+    auto *winnerSection = sectionLabel("ĐỘI THẮNG • DÙNG CHO KẾT QUẢ");
+    winnerSection->setObjectName("section");
+    root->addWidget(winnerSection);
 
+    auto *winnerRow = new QHBoxLayout();
+    winnerRow->setSpacing(6);
+    winnerAButton_ = new QRadioButton("ĐỘI A");
+    winnerBButton_ = new QRadioButton("ĐỘI B");
+    winnerGroup_ = new QButtonGroup(this);
+    winnerGroup_->setExclusive(true);
+    winnerGroup_->addButton(winnerAButton_);
+    winnerGroup_->addButton(winnerBButton_);
+    winnerRow->addWidget(winnerAButton_);
+    winnerRow->addWidget(winnerBButton_);
+    root->addLayout(winnerRow);
+    connect(winnerAButton_, &QRadioButton::clicked, this, [this]() {
+        QJsonObject args; args.insert("side", "A"); sendCommand("set_result_winner", args);
+    });
+    connect(winnerBButton_, &QRadioButton::clicked, this, [this]() {
+        QJsonObject args; args.insert("side", "B"); sendCommand("set_result_winner", args);
+    });
+    clearWinnerButton_ = new QPushButton("BỎ CHỌN ĐỘI THẮNG");
+    connect(clearWinnerButton_, &QPushButton::clicked, this, [this]() {
+        QJsonObject args; args.insert("side", ""); sendCommand("set_result_winner", args);
+    });
+    root->addWidget(clearWinnerButton_);
+
+    root->addStretch(1);
     setConnectionState("waiting", "Đang chờ 10BIT Broadcast Core");
 }
 
@@ -281,7 +299,7 @@ void TenBitScoreDockWidget::pollStatus()
         sendCommand("status");
 }
 
-void TenBitScoreDockWidget::sendCommand(const QString &command)
+void TenBitScoreDockWidget::sendCommand(const QString &command, const QJsonObject &args)
 {
     if (socket_.state() != QAbstractSocket::ConnectedState) {
         ensureConnected();
@@ -291,8 +309,18 @@ void TenBitScoreDockWidget::sendCommand(const QString &command)
     req.insert("id", QString::number(++requestId_));
     req.insert("token", token_);
     req.insert("command", command);
+    if (!args.isEmpty())
+        req.insert("args", args);
     socket_.write(QJsonDocument(req).toJson(QJsonDocument::Compact));
     socket_.write("\n");
+}
+
+void TenBitScoreDockWidget::sendTeamNames()
+{
+    QJsonObject args;
+    args.insert("teamA", teamAEdit_->text().trimmed());
+    args.insert("teamB", teamBEdit_->text().trimmed());
+    sendCommand("set_team_names", args);
 }
 
 void TenBitScoreDockWidget::onReadyRead()
@@ -317,10 +345,9 @@ void TenBitScoreDockWidget::onReadyRead()
 
 void TenBitScoreDockWidget::applyState(const QJsonObject &state)
 {
-    const QString sport = state.value("sportModule").toString();
-    const bool pickleball = sport == "pickleball";
+    const bool pickleball = state.value("sportModule").toString() == "pickleball";
+    projectLabel_->setText(state.value("projectName").toString("Chưa mở Project") + (pickleball ? "  •  Pickleball" : ""));
     const auto match = state.value("match").toObject();
-
     const QString teamA = teamName(match, "TeamA", "ĐỘI A");
     const QString teamB = teamName(match, "TeamB", "ĐỘI B");
     const int scoreA = match.value("ScoreA").toInt();
@@ -328,28 +355,43 @@ void TenBitScoreDockWidget::applyState(const QJsonObject &state)
     const int gamesA = match.value("GamesA").toInt();
     const int gamesB = match.value("GamesB").toInt();
 
-    projectLabel_->setText(state.value("projectName").toString("Chưa mở Project") + (pickleball ? "  •  Pickleball" : ""));
+    updatingUI_ = true;
+    if (!teamAEdit_->hasFocus())
+        teamAEdit_->setText(teamA);
+    if (!teamBEdit_->hasFocus())
+        teamBEdit_->setText(teamB);
+    updatingUI_ = false;
 
-    const QFontMetrics fm(teamALabel_->font());
-    teamALabel_->setText(fm.elidedText(teamA, Qt::ElideRight, 125));
-    teamBLabel_->setText(fm.elidedText(teamB, Qt::ElideRight, 125));
-    teamALabel_->setToolTip(teamA);
-    teamBLabel_->setToolTip(teamB);
+    teamALabel_->setText(teamA);
+    teamBLabel_->setText(teamB);
     scoreAValue_->setText(QString::number(scoreA));
     scoreBValue_->setText(QString::number(scoreB));
-
     const QString call = state.value("scoreCall").toString().trimmed();
-    callLabel_->setText(QString("Game %1–%2%3").arg(gamesA).arg(gamesB)
-        .arg(call.isEmpty() ? QString() : "  •  " + call));
+    callLabel_->setText(QString("Game %1–%2%3").arg(gamesA).arg(gamesB).arg(call.isEmpty() ? QString() : "  •  " + call));
 
-    const bool gameDone = !match.value("GameWinner").toString().isEmpty();
-    const bool matchDone = !match.value("MatchWinner").toString().isEmpty();
     rallyAButton_->setText(teamA + "  +");
     rallyBButton_->setText(teamB + "  +");
+    const bool gameDone = !match.value("GameWinner").toString().isEmpty();
+    const bool matchDone = !match.value("MatchWinner").toString().isEmpty();
     rallyAButton_->setEnabled(pickleball && !gameDone && !matchDone);
     rallyBButton_->setEnabled(pickleball && !gameDone && !matchDone);
     undoButton_->setEnabled(pickleball && state.value("canUndo").toBool());
+    swapButton_->setEnabled(pickleball);
     finishGameButton_->setEnabled(pickleball && gameDone);
+    saveTeamsButton_->setEnabled(pickleball);
+
+    winnerAButton_->setText(teamA);
+    winnerBButton_->setText(teamB);
+    QString selected = match.value("ResultWinner").toString();
+    if (selected.isEmpty())
+        selected = match.value("MatchWinner").toString();
+    winnerGroup_->setExclusive(false);
+    winnerAButton_->setChecked(selected == "A");
+    winnerBButton_->setChecked(selected == "B");
+    winnerGroup_->setExclusive(true);
+    winnerAButton_->setEnabled(pickleball);
+    winnerBButton_->setEnabled(pickleball);
+    clearWinnerButton_->setEnabled(pickleball && !selected.isEmpty());
 }
 
 void TenBitScoreDockWidget::setConnectionState(const QString &state, const QString &tooltip)
