@@ -77,7 +77,7 @@ static void dock_into_obs()
 static void frontend_event(enum obs_frontend_event event, void *)
 {
     if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING)
-        QTimer::singleShot(0, dock_into_obs);
+        QTimer::singleShot(350, dock_into_obs);
 }
 
 MODULE_EXPORT const char *obs_module_description(void)
@@ -107,9 +107,8 @@ bool obs_module_load(void)
 
     obs_frontend_add_event_callback(frontend_event, nullptr);
 
-    // OBS creates add_dock_by_id docks hidden/floating. Attach both immediately
-    // and once again after OBS finishes restoring its layout.
-    QTimer::singleShot(0, dock_into_obs);
+    // Do not place docks here. OBS still restores its saved workspace after
+    // plugin load. Placement is applied once after FINISHED_LOADING instead.
 
     blog(LOG_INFO, "[10BIT Dock] loaded dual-dock suite (version %s)", PLUGIN_VERSION);
     return true;
