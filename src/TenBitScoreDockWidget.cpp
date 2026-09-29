@@ -68,24 +68,25 @@ TenBitScoreDockWidget::TenBitScoreDockWidget(QWidget *parent) : TenBitObsDockCon
 
 void TenBitScoreDockWidget::buildUI()
 {
-    setMinimumWidth(330);
+    setMinimumWidth(360);
 
     auto *panel = new QFrame(this);
     panel->setObjectName("tenbitScorePanel");
     panel->setStyleSheet(R"(
         QFrame#tenbitScorePanel { background: transparent; }
-        QLabel#statusDot { font-size:17px; font-weight:900; padding:0px; }
+        QLabel#statusDot { font-size:16px; font-weight:900; padding:0px; }
         QLabel#statusDot[state="connected"] { color:#43e58a; }
         QLabel#statusDot[state="waiting"] { color:#f2c94c; }
         QLabel#statusDot[state="offline"] { color:#ff5a6d; }
-        QLabel#section { color:palette(mid); font-size:10px; font-weight:800; padding-top:1px; }
-        QFrame#scoreCard { background:palette(base); border:1px solid palette(mid); border-radius:5px; }
-        QLabel#teamName { font-size:10px; font-weight:700; }
-        QLabel#scoreValue { font-size:31px; font-weight:900; }
-        QLabel#dash { color:palette(mid); font-size:20px; font-weight:800; }
-        QLabel#call { color:palette(mid); font-size:10px; }
-        QLineEdit { min-height:27px; }
-        QRadioButton { min-height:26px; }
+        QFrame#scoreCard { background:palette(base); border:1px solid palette(mid); border-radius:6px; }
+        QLabel#teamName { font-size:9px; font-weight:800; }
+        QLabel#scoreValue { font-size:26px; font-weight:1000; }
+        QLabel#dash { color:palette(mid); font-size:18px; font-weight:900; }
+        QLabel#call { color:palette(mid); font-size:9px; }
+        QLabel#winnerLabel { color:palette(mid); font-size:9px; font-weight:900; }
+        QLineEdit { min-height:25px; padding:3px 7px; }
+        QPushButton { min-height:27px; }
+        QRadioButton { min-height:24px; font-size:9px; font-weight:850; }
     )");
 
     auto *outer = new QVBoxLayout(this);
@@ -93,51 +94,52 @@ void TenBitScoreDockWidget::buildUI()
     outer->addWidget(panel);
 
     auto *root = new QVBoxLayout(panel);
-    root->setContentsMargins(8, 7, 8, 8);
-    root->setSpacing(6);
+    root->setContentsMargins(7, 5, 7, 6);
+    root->setSpacing(4);
 
     auto *projectRow = new QHBoxLayout();
     projectLabel_ = new QLabel("Chưa mở Project");
+    QFont projectFont = projectLabel_->font();
+    projectFont.setPointSizeF(qMax(8.0, projectFont.pointSizeF() - 1.0));
+    projectLabel_->setFont(projectFont);
     connectionLabel_ = new QLabel("●");
     connectionLabel_->setObjectName("statusDot");
     connectionLabel_->setAlignment(Qt::AlignCenter);
-    connectionLabel_->setFixedWidth(20);
+    connectionLabel_->setFixedWidth(18);
     projectRow->addWidget(projectLabel_, 1);
     projectRow->addWidget(connectionLabel_);
     root->addLayout(projectRow);
 
-    auto *teamsSection = sectionLabel("TÊN 2 ĐỘI");
-    teamsSection->setObjectName("section");
-    root->addWidget(teamsSection);
-
     auto *teamRow = new QHBoxLayout();
-    teamRow->setSpacing(6);
+    teamRow->setSpacing(5);
     teamAEdit_ = new QLineEdit();
     teamBEdit_ = new QLineEdit();
     teamAEdit_->setPlaceholderText("Đội A");
     teamBEdit_->setPlaceholderText("Đội B");
-    teamRow->addWidget(teamAEdit_);
-    teamRow->addWidget(teamBEdit_);
-    root->addLayout(teamRow);
-    saveTeamsButton_ = new QPushButton("LƯU TÊN 2 ĐỘI");
+    saveTeamsButton_ = new QPushButton("LƯU");
+    saveTeamsButton_->setFixedWidth(50);
+    saveTeamsButton_->setToolTip("Lưu tên hai đội");
     connect(saveTeamsButton_, &QPushButton::clicked, this, &TenBitScoreDockWidget::sendTeamNames);
-    root->addWidget(saveTeamsButton_);
+    teamRow->addWidget(teamAEdit_, 1);
+    teamRow->addWidget(teamBEdit_, 1);
+    teamRow->addWidget(saveTeamsButton_);
+    root->addLayout(teamRow);
 
     auto *scoreCard = new QFrame();
     scoreCard->setObjectName("scoreCard");
     auto *grid = new QGridLayout(scoreCard);
-    grid->setContentsMargins(12, 8, 12, 7);
-    grid->setHorizontalSpacing(8);
-    grid->setVerticalSpacing(1);
+    grid->setContentsMargins(10, 5, 10, 5);
+    grid->setHorizontalSpacing(7);
+    grid->setVerticalSpacing(0);
     grid->setColumnStretch(0, 1);
-    grid->setColumnStretch(2, 1);
+    grid->setColumnStretch(4, 1);
 
     teamALabel_ = new QLabel("ĐỘI A");
     teamALabel_->setObjectName("teamName");
-    teamALabel_->setAlignment(Qt::AlignCenter);
+    teamALabel_->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     teamBLabel_ = new QLabel("ĐỘI B");
     teamBLabel_->setObjectName("teamName");
-    teamBLabel_->setAlignment(Qt::AlignCenter);
+    teamBLabel_->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     scoreAValue_ = new QLabel("0");
     scoreAValue_->setObjectName("scoreValue");
     scoreAValue_->setAlignment(Qt::AlignCenter);
@@ -150,35 +152,17 @@ void TenBitScoreDockWidget::buildUI()
     callLabel_ = new QLabel("Game 0–0");
     callLabel_->setObjectName("call");
     callLabel_->setAlignment(Qt::AlignCenter);
-    callLabel_->setWordWrap(true);
 
     grid->addWidget(teamALabel_, 0, 0);
-    grid->addWidget(teamBLabel_, 0, 2);
-    grid->addWidget(scoreAValue_, 1, 0);
-    grid->addWidget(dash, 1, 1);
-    grid->addWidget(scoreBValue_, 1, 2);
-    grid->addWidget(callLabel_, 2, 0, 1, 3);
+    grid->addWidget(scoreAValue_, 0, 1);
+    grid->addWidget(dash, 0, 2);
+    grid->addWidget(scoreBValue_, 0, 3);
+    grid->addWidget(teamBLabel_, 0, 4);
+    grid->addWidget(callLabel_, 1, 0, 1, 5);
     root->addWidget(scoreCard);
 
-    auto *section = sectionLabel("CỘNG ĐIỂM");
-    section->setObjectName("section");
-    root->addWidget(section);
-
     auto *scoreRow = new QHBoxLayout();
-    scoreRow->setSpacing(6);
-    auto makeAccentButton = [](QPushButton *button, const QString &color) {
-        auto *box = new QWidget();
-        auto *layout = new QVBoxLayout(box);
-        layout->setContentsMargins(0, 0, 0, 0);
-        layout->setSpacing(2);
-        layout->addWidget(button);
-        auto *line = new QFrame();
-        line->setFixedHeight(2);
-        line->setStyleSheet(QString("background:%1; border:0;").arg(color));
-        layout->addWidget(line);
-        return box;
-    };
-
+    scoreRow->setSpacing(5);
     rallyAButton_ = new QPushButton("ĐỘI A +");
     rallyBButton_ = new QPushButton("ĐỘI B +");
     QFont actionFont = rallyAButton_->font();
@@ -187,52 +171,54 @@ void TenBitScoreDockWidget::buildUI()
     rallyBButton_->setFont(actionFont);
     connect(rallyAButton_, &QPushButton::clicked, this, [this]() { sendCommand("rally_a"); });
     connect(rallyBButton_, &QPushButton::clicked, this, [this]() { sendCommand("rally_b"); });
-    scoreRow->addWidget(makeAccentButton(rallyAButton_, "#d7b400"));
-    scoreRow->addWidget(makeAccentButton(rallyBButton_, "#d91f49"));
+    rallyAButton_->setStyleSheet("border-bottom:2px solid #d7b400;");
+    rallyBButton_->setStyleSheet("border-bottom:2px solid #d91f49;");
+    scoreRow->addWidget(rallyAButton_);
+    scoreRow->addWidget(rallyBButton_);
     root->addLayout(scoreRow);
 
     auto *actionRow = new QHBoxLayout();
-    actionRow->setSpacing(6);
-    undoButton_ = new QPushButton("↶  HOÀN TÁC");
-    swapButton_ = new QPushButton("⇄  ĐỔI VỊ TRÍ");
+    actionRow->setSpacing(5);
+    undoButton_ = new QPushButton("↶ HOÀN TÁC");
+    swapButton_ = new QPushButton("⇄ ĐỔI VỊ TRÍ");
+    finishGameButton_ = new QPushButton("KẾT THÚC GAME");
     connect(undoButton_, &QPushButton::clicked, this, [this]() { sendCommand("undo"); });
     connect(swapButton_, &QPushButton::clicked, this, [this]() { sendCommand("swap_sides"); });
+    connect(finishGameButton_, &QPushButton::clicked, this, [this]() { sendCommand("finish_game"); });
     actionRow->addWidget(undoButton_);
     actionRow->addWidget(swapButton_);
+    actionRow->addWidget(finishGameButton_);
     root->addLayout(actionRow);
 
-    finishGameButton_ = new QPushButton("KẾT THÚC GAME");
-    connect(finishGameButton_, &QPushButton::clicked, this, [this]() { sendCommand("finish_game"); });
-    root->addWidget(finishGameButton_);
-
-    auto *winnerSection = sectionLabel("ĐỘI THẮNG • DÙNG CHO KẾT QUẢ");
-    winnerSection->setObjectName("section");
-    root->addWidget(winnerSection);
-
     auto *winnerRow = new QHBoxLayout();
-    winnerRow->setSpacing(6);
+    winnerRow->setSpacing(7);
+    auto *winnerLabel = new QLabel("THẮNG:");
+    winnerLabel->setObjectName("winnerLabel");
     winnerAButton_ = new QRadioButton("ĐỘI A");
     winnerBButton_ = new QRadioButton("ĐỘI B");
     winnerGroup_ = new QButtonGroup(this);
     winnerGroup_->setExclusive(true);
     winnerGroup_->addButton(winnerAButton_);
     winnerGroup_->addButton(winnerBButton_);
-    winnerRow->addWidget(winnerAButton_);
-    winnerRow->addWidget(winnerBButton_);
+    clearWinnerButton_ = new QPushButton("×");
+    clearWinnerButton_->setFixedSize(28, 26);
+    clearWinnerButton_->setToolTip("Bỏ chọn đội thắng");
+    winnerRow->addWidget(winnerLabel);
+    winnerRow->addWidget(winnerAButton_, 1);
+    winnerRow->addWidget(winnerBButton_, 1);
+    winnerRow->addWidget(clearWinnerButton_);
     root->addLayout(winnerRow);
+
     connect(winnerAButton_, &QRadioButton::clicked, this, [this]() {
         QJsonObject args; args.insert("side", "A"); sendCommand("set_result_winner", args);
     });
     connect(winnerBButton_, &QRadioButton::clicked, this, [this]() {
         QJsonObject args; args.insert("side", "B"); sendCommand("set_result_winner", args);
     });
-    clearWinnerButton_ = new QPushButton("BỎ CHỌN ĐỘI THẮNG");
     connect(clearWinnerButton_, &QPushButton::clicked, this, [this]() {
         QJsonObject args; args.insert("side", ""); sendCommand("set_result_winner", args);
     });
-    root->addWidget(clearWinnerButton_);
 
-    root->addStretch(1);
     setConnectionState("waiting", "Đang chờ 10BIT Broadcast Core");
 }
 
