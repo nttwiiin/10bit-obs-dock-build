@@ -483,49 +483,25 @@ bool TenBitDockWidget::revealDock()
         return false;
 
     controlDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
-    scoreDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea | Qt::BottomDockWidgetArea);
-    controlDock->setFloating(false);
-    scoreDock->setFloating(false);
-
-    // P1.7.1 default layout migration:
-    // - 10BIT Broadcast is a vertical dock on the right.
-    // - 10BIT Score is tabbed with OBS Sources/Scenes on the left.
-    // Apply this only once so the operator can freely rearrange docks afterwards.
-    QSettings settings(QStringLiteral("10BIT Media"), QStringLiteral("10BIT Broadcast OBS Dock"));
-    const int appliedLayoutVersion = settings.value(QStringLiteral("defaultLayoutVersion"), 0).toInt();
-    constexpr int wantedLayoutVersion = 3;
-
-    if (appliedLayoutVersion < wantedLayoutVersion) {
+    scoreDock->setAllowedAreas(Qt::BottomDockWidgetArea | Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    if (controlDock->isFloating()) {
         mainWindow->addDockWidget(Qt::RightDockWidgetArea, controlDock);
-
-        auto *sourcesDock = mainWindow->findChild<QDockWidget *>(QStringLiteral("sourcesDock"), Qt::FindChildrenRecursively);
-        auto *scenesDock = mainWindow->findChild<QDockWidget *>(QStringLiteral("scenesDock"), Qt::FindChildrenRecursively);
-
-        if (sourcesDock) {
-            mainWindow->addDockWidget(Qt::LeftDockWidgetArea, scoreDock);
-            if (scenesDock)
-                mainWindow->tabifyDockWidget(sourcesDock, scenesDock);
-            mainWindow->tabifyDockWidget(sourcesDock, scoreDock);
-        } else if (scenesDock) {
-            mainWindow->addDockWidget(Qt::LeftDockWidgetArea, scoreDock);
-            mainWindow->tabifyDockWidget(scenesDock, scoreDock);
-        } else {
-            mainWindow->addDockWidget(Qt::LeftDockWidgetArea, scoreDock);
-        }
-
-        settings.setValue(QStringLiteral("defaultLayoutVersion"), wantedLayoutVersion);
-        settings.sync();
+        controlDock->setFloating(false);
+    }
+    if (scoreDock->isFloating()) {
+        auto *controlsDock = mainWindow->findChild<QDockWidget *>(QStringLiteral("controlsDock"), Qt::FindChildrenRecursively);
+        if (controlsDock)
+            mainWindow->splitDockWidget(controlsDock, scoreDock, Qt::Horizontal);
+        else
+            mainWindow->addDockWidget(Qt::BottomDockWidgetArea, scoreDock);
+        scoreDock->setFloating(false);
     }
 
     controlDock->toggleViewAction()->setChecked(true);
     scoreDock->toggleViewAction()->setChecked(true);
     controlDock->show();
     scoreDock->show();
-
-    // Default visible tabs match the requested broadcast workspace.
     controlDock->raise();
     scoreDock->raise();
-
-    return controlDock->isVisible() && scoreDock->isVisible() &&
-           !controlDock->isFloating() && !scoreDock->isFloating();
+    return controlDock->isVisible() && scoreDock->isVisible();
 }
