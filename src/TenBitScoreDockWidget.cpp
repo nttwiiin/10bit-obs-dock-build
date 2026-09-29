@@ -200,9 +200,10 @@ void TenBitScoreDockWidget::buildUI()
     winnerGroup_->setExclusive(true);
     winnerGroup_->addButton(winnerAButton_);
     winnerGroup_->addButton(winnerBButton_);
-    clearWinnerButton_ = new QPushButton("×");
-    clearWinnerButton_->setFixedSize(28, 26);
-    clearWinnerButton_->setToolTip("Bỏ chọn đội thắng");
+    clearWinnerButton_ = new QPushButton("BỎ CHỌN");
+    clearWinnerButton_->setFixedWidth(82);
+    clearWinnerButton_->setMinimumHeight(26);
+    clearWinnerButton_->setToolTip("Bỏ lựa chọn đội thắng thủ công");
     winnerRow->addWidget(winnerLabel);
     winnerRow->addWidget(winnerAButton_, 1);
     winnerRow->addWidget(winnerBButton_, 1);
@@ -368,9 +369,9 @@ void TenBitScoreDockWidget::applyState(const QJsonObject &state)
 
     winnerAButton_->setText(teamA);
     winnerBButton_->setText(teamB);
-    QString selected = match.value("ResultWinner").toString();
-    if (selected.isEmpty())
-        selected = match.value("MatchWinner").toString();
+    // Winner controls are an explicit operator override. Do not fall back to
+    // MatchWinner here; otherwise clearing the manual choice appears to fail.
+    const QString selected = match.value("ResultWinner").toString();
     winnerGroup_->setExclusive(false);
     winnerAButton_->setChecked(selected == "A");
     winnerBButton_->setChecked(selected == "B");
