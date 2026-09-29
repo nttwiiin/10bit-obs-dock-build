@@ -1,0 +1,34 @@
+name: Fetch FFmpeg Windows x64
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fetch-ffmpeg.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download trusted BtbN FFmpeg static build
+        run: |
+          set -euo pipefail
+          mkdir -p artifact
+          curl -fL --retry 4 --retry-delay 3 \
+            -o ffmpeg.zip \
+            https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip
+          unzip -j ffmpeg.zip '*/bin/ffmpeg.exe' -d artifact
+          test -s artifact/ffmpeg.exe
+          sha256sum artifact/ffmpeg.exe | tee artifact/SHA256_FFMPEG.txt
+
+      - name: Upload ffmpeg.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: 10BIT_FFMPEG_WINDOWS_X64
+          path: |
+            artifact/ffmpeg.exe
+            artifact/SHA256_FFMPEG.txt
+          if-no-files-found: error
+          retention-days: 30
