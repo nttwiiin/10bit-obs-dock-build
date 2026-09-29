@@ -258,6 +258,43 @@ void TenBitDockWidget::buildUI()
     recordReplayButton_ = makeButton("GHI REPLAY", "record_replay");
     root->addWidget(recordReplayButton_);
 
+    auto *obsLabel = sectionLabel("ĐIỀU KHIỂN OBS");
+    obsLabel->setObjectName("section");
+    root->addWidget(obsLabel);
+
+    obsSceneLabel_ = new QLabel("Program: --");
+    obsSceneLabel_->setObjectName("call");
+    obsSceneLabel_->setWordWrap(true);
+    root->addWidget(obsSceneLabel_);
+
+    auto *sceneRow = new QHBoxLayout();
+    sceneRow->setSpacing(5);
+    obsScenePrevButton_ = makeButton(QString::fromUtf8("◀  SCENE"), "obs_scene_prev");
+    obsSceneNextButton_ = makeButton(QString::fromUtf8("SCENE  ▶"), "obs_scene_next");
+    sceneRow->addWidget(obsScenePrevButton_);
+    sceneRow->addWidget(obsSceneNextButton_);
+    root->addLayout(sceneRow);
+
+    auto *outputRow = new QHBoxLayout();
+    outputRow->setSpacing(5);
+    obsStreamButton_ = makeButton("PHÁT SÓNG", "obs_stream_toggle");
+    obsRecordButton_ = makeButton("GHI HÌNH", "obs_record_toggle");
+    outputRow->addWidget(obsStreamButton_);
+    outputRow->addWidget(obsRecordButton_);
+    root->addLayout(outputRow);
+
+    auto *studioRow = new QHBoxLayout();
+    studioRow->setSpacing(5);
+    obsStudioButton_ = makeButton("STUDIO MODE", "obs_studio_toggle");
+    obsTakeButton_ = makeButton("TAKE", "obs_take");
+    studioRow->addWidget(obsStudioButton_);
+    studioRow->addWidget(obsTakeButton_);
+    root->addLayout(studioRow);
+
+    obsTransitionLabel_ = new QLabel("Transition: --");
+    obsTransitionLabel_->setObjectName("call");
+    root->addWidget(obsTransitionLabel_);
+
     messageLabel_ = new QLabel();
     messageLabel_->setWordWrap(true);
     messageLabel_->hide();
@@ -487,6 +524,35 @@ void TenBitDockWidget::applyState(const QJsonObject &state)
     recordReplayButton_->setEnabled(replayAvailable);
     setActive(replayButton_, replayPlaying, "●  PHÁT REPLAY", "PHÁT REPLAY");
     setActive(recordReplayButton_, replayBufferActive, "●  GHI REPLAY", "GHI REPLAY");
+
+    const bool obsConnected = state.value("obsConnected").toBool();
+    const bool obsStudio = state.value("obsStudioMode").toBool();
+    const bool obsStream = state.value("obsStreamActive").toBool();
+    const bool obsRecord = state.value("obsRecordActive").toBool();
+    const QString programScene = state.value("obsProgramScene").toString();
+    const QString previewScene = state.value("obsPreviewScene").toString();
+    QString sceneText = programScene.isEmpty() ? "Program: --" : "Program: " + programScene;
+    if (obsStudio && !previewScene.isEmpty())
+        sceneText += "\nPreview: " + previewScene;
+    obsSceneLabel_->setText(sceneText);
+    obsSceneLabel_->setToolTip(sceneText);
+
+    const QString transitionName = state.value("obsTransition").toString();
+    const int transitionMs = state.value("obsTransitionMs").toInt();
+    obsTransitionLabel_->setText(transitionName.isEmpty()
+        ? "Transition: --"
+        : QString("Transition: %1 • %2ms").arg(transitionName).arg(transitionMs));
+
+    const bool sceneControls = obsConnected && !replayPlaying;
+    obsScenePrevButton_->setEnabled(sceneControls);
+    obsSceneNextButton_->setEnabled(sceneControls);
+    obsStreamButton_->setEnabled(obsConnected);
+    obsRecordButton_->setEnabled(obsConnected);
+    obsStudioButton_->setEnabled(sceneControls);
+    obsTakeButton_->setEnabled(sceneControls && obsStudio);
+    setActive(obsStreamButton_, obsStream, "●  PHÁT SÓNG", "PHÁT SÓNG");
+    setActive(obsRecordButton_, obsRecord, "●  GHI HÌNH", "GHI HÌNH");
+    setActive(obsStudioButton_, obsStudio, "●  STUDIO MODE", "STUDIO MODE");
 }
 
 void TenBitDockWidget::setConnectionState(const QString &state, const QString &tooltip)
