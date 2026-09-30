@@ -3,7 +3,9 @@ name: Build 10BIT OBS Dock (Windows x64)
 on:
   workflow_dispatch:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, advertising-p1-8-2 ]
+  pull_request:
+    branches: [ main ]
 
 permissions:
   contents: read
