@@ -305,7 +305,8 @@ void TenBitDockWidget::buildUI()
     graphics->setHorizontalSpacing(7);
     graphics->setVerticalSpacing(7);
     scoreToggle_ = makeButton("BẢNG ĐIỂM", "toggle_score");
-    adButton_ = makeButton("QUẢNG CÁO", "toggle_ad");
+    adButton_ = makeButton("QUẢNG CÁO THƯỜNG", "toggle_banner_ad");
+    adVideoButton_ = makeButton("VIDEO TOÀN MÀN", "toggle_fullscreen_ad");
     teamsButton_ = makeButton("HIỆN TÊN", "toggle_teams");
     introButton_ = makeButton("INTRO", "intro");
     timeoutButton_ = makeButton("TIME OUT", "timeout");
@@ -322,11 +323,12 @@ void TenBitDockWidget::buildUI()
     adControls->addWidget(nextAdButton_);
     graphics->addLayout(adControls, 0, 1);
     graphics->addWidget(teamsButton_, 1, 0);
-    graphics->addWidget(introButton_, 1, 1);
-    graphics->addWidget(timeoutButton_, 2, 0);
-    graphics->addWidget(standbyButton_, 2, 1);
-    graphics->addWidget(breakButton_, 3, 0);
-    graphics->addWidget(resultsButton_, 3, 1);
+    graphics->addWidget(adVideoButton_, 1, 1);
+    graphics->addWidget(introButton_, 2, 0);
+    graphics->addWidget(timeoutButton_, 2, 1);
+    graphics->addWidget(standbyButton_, 3, 0);
+    graphics->addWidget(breakButton_, 3, 1);
+    graphics->addWidget(resultsButton_, 4, 0, 1, 2);
     graphicsRoot->addLayout(graphics);
     root->addWidget(graphicsCard);
 
@@ -580,9 +582,13 @@ void TenBitDockWidget::applyState(const QJsonObject &state)
         + "   •   " + formatText);
 
     setActive(scoreToggle_, graphics.value("ProgramScore").toBool(), "●  BẢNG ĐIỂM", "BẢNG ĐIỂM");
-    setActive(adButton_, state.value("adVisible").toBool(), "●  QUẢNG CÁO", "QUẢNG CÁO");
+    const bool adOn = state.value("adVisible").toBool();
+    const bool videoMode = state.value("adMode").toString() == "fullscreen";
+    setActive(adButton_, adOn && !videoMode, "●  QC THƯỜNG", "QC THƯỜNG");
+    setActive(adVideoButton_, adOn && videoMode, "●  VIDEO TOÀN MÀN", "VIDEO TOÀN MÀN");
     const QString adName = state.value("adActiveName").toString();
-    adButton_->setToolTip(adName.isEmpty() ? "Thêm quảng cáo trong Sponsor Manager của ứng dụng" : "Quảng cáo: " + adName);
+    adButton_->setToolTip(adOn && !videoMode ? "Banner: " + adName : "Phát logo/ảnh banner");
+    adVideoButton_->setToolTip(adOn && videoMode ? (state.value("adVideoPlaying").toBool() ? "Video đang phát: " : "Đang chờ video: ") + adName : "Phát video MP4/WebM toàn màn hình và âm thanh");
     nextAdButton_->setEnabled(!adName.isEmpty());
     setActive(teamsButton_, graphics.value("ProgramTeams").toBool(), "●  HIỆN TÊN", "HIỆN TÊN");
 
