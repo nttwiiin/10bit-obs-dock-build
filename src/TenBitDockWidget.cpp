@@ -188,6 +188,7 @@ void TenBitDockWidget::buildUI()
         QPushButton#recordReplay {
             min-height:39px;
         }
+        QPushButton#nextAd { min-width:28px; max-width:30px; padding:4px 1px; font-size:15px; }
     )");
 
     auto *outer = new QVBoxLayout(this);
@@ -312,7 +313,14 @@ void TenBitDockWidget::buildUI()
     breakButton_ = makeButton("BREAK", "break");
     resultsButton_ = makeButton("KẾT QUẢ", "results");
     graphics->addWidget(scoreToggle_, 0, 0);
-    graphics->addWidget(adButton_, 0, 1);
+    auto *adControls = new QHBoxLayout();
+    adControls->setSpacing(4);
+    nextAdButton_ = makeButton(">", "next_ad");
+    nextAdButton_->setObjectName("nextAd");
+    nextAdButton_->setToolTip("Phát quảng cáo tiếp theo");
+    adControls->addWidget(adButton_, 1);
+    adControls->addWidget(nextAdButton_);
+    graphics->addLayout(adControls, 0, 1);
     graphics->addWidget(teamsButton_, 1, 0);
     graphics->addWidget(introButton_, 1, 1);
     graphics->addWidget(timeoutButton_, 2, 0);
@@ -573,6 +581,9 @@ void TenBitDockWidget::applyState(const QJsonObject &state)
 
     setActive(scoreToggle_, graphics.value("ProgramScore").toBool(), "●  BẢNG ĐIỂM", "BẢNG ĐIỂM");
     setActive(adButton_, state.value("adVisible").toBool(), "●  QUẢNG CÁO", "QUẢNG CÁO");
+    const QString adName = state.value("adActiveName").toString();
+    adButton_->setToolTip(adName.isEmpty() ? "Thêm quảng cáo trong Sponsor Manager của ứng dụng" : "Quảng cáo: " + adName);
+    nextAdButton_->setEnabled(!adName.isEmpty());
     setActive(teamsButton_, graphics.value("ProgramTeams").toBool(), "●  HIỆN TÊN", "HIỆN TÊN");
 
     const QString takeover = graphics.value("ProgramTakeover").toString();
