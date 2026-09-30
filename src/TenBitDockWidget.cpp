@@ -75,20 +75,119 @@ TenBitDockWidget::TenBitDockWidget(QWidget *parent) : TenBitObsDockContent(paren
 
 void TenBitDockWidget::buildUI()
 {
-    setMinimumWidth(304);
+    setMinimumWidth(318);
 
     auto *panel = new QFrame(this);
     panel->setObjectName("tenbitPanel");
     panel->setStyleSheet(R"(
-        QFrame#tenbitPanel { background: transparent; }
-        QLabel#statusDot { font-size:17px; font-weight:900; padding:0px; }
-        QLabel#statusDot[state="connected"] { color:#43e58a; }
-        QLabel#statusDot[state="waiting"] { color:#f2c94c; }
-        QLabel#statusDot[state="offline"] { color:#ff5a6d; }
-        QLabel#section { color:palette(mid); font-size:10px; font-weight:800; padding-top:2px; }
-        QLabel#hint { color:palette(mid); font-size:9px; }
-        QLineEdit, QComboBox { min-height:27px; }
-        QPushButton[active="true"] { background:#d91f49; border-color:#ff4269; color:#fff; }
+        QFrame#tenbitPanel {
+            background:#07111d;
+            border:1px solid #24364d;
+            border-radius:11px;
+        }
+        QFrame#statusCard, QFrame#card {
+            background:#0d1827;
+            border:1px solid #20334a;
+            border-radius:10px;
+        }
+        QLabel {
+            color:#eef4ff;
+            background:transparent;
+            border:0;
+        }
+        QLabel#project {
+            color:#f4f7ff;
+            font-size:13px;
+            font-weight:800;
+        }
+        QLabel#statusDot {
+            font-size:16px;
+            font-weight:900;
+            padding:0px;
+        }
+        QLabel#statusDot[state="connected"] { color:#25e58c; }
+        QLabel#statusDot[state="waiting"] { color:#f4c84a; }
+        QLabel#statusDot[state="offline"] { color:#ff4169; }
+        QLabel#sectionTitle {
+            color:#f2f6ff;
+            font-size:13px;
+            font-weight:900;
+            padding:0px 0px 6px 12px;
+            border-left:4px solid #ff274f;
+            border-bottom:1px solid #20334a;
+        }
+        QLabel#fieldLabel {
+            color:#9eacc2;
+            font-size:9px;
+            font-weight:800;
+            padding-top:2px;
+        }
+        QLabel#hint {
+            color:#8f9db2;
+            font-size:9px;
+            padding:8px 10px;
+            background:#111e2f;
+            border:1px solid #21364f;
+            border-radius:7px;
+        }
+        QLineEdit, QComboBox {
+            color:#f4f7ff;
+            background:#172437;
+            border:1px solid #31455f;
+            border-radius:7px;
+            min-height:31px;
+            padding:4px 9px;
+            font-size:11px;
+            font-weight:700;
+            selection-background-color:#e11f47;
+        }
+        QLineEdit:focus, QComboBox:focus {
+            border:1px solid #5c7da5;
+            background:#1a2940;
+        }
+        QComboBox::drop-down {
+            border:0;
+            width:24px;
+        }
+        QPushButton {
+            color:#f1f5fd;
+            background:#152235;
+            border:1px solid #415672;
+            border-radius:8px;
+            min-height:39px;
+            padding:5px 7px;
+            font-size:10px;
+            font-weight:900;
+        }
+        QPushButton:hover {
+            background:#1b2c43;
+            border-color:#6883a6;
+        }
+        QPushButton:pressed {
+            background:#101b2a;
+        }
+        QPushButton:disabled {
+            color:#5c6879;
+            background:#101925;
+            border-color:#253244;
+        }
+        QPushButton[active="true"] {
+            color:#ffffff;
+            background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #ef1743,stop:1 #a70f31);
+            border:1px solid #ff3c62;
+        }
+        QPushButton#replayPrimary {
+            min-height:45px;
+            font-size:12px;
+        }
+        QPushButton#replaySettings {
+            min-height:45px;
+            max-width:46px;
+            font-size:16px;
+        }
+        QPushButton#recordReplay {
+            min-height:39px;
+        }
     )");
 
     auto *outer = new QVBoxLayout(this);
@@ -96,39 +195,73 @@ void TenBitDockWidget::buildUI()
     outer->addWidget(panel);
 
     auto *root = new QVBoxLayout(panel);
-    root->setContentsMargins(8, 7, 8, 8);
-    root->setSpacing(6);
+    root->setContentsMargins(8, 8, 8, 8);
+    root->setSpacing(8);
 
-    auto *projectRow = new QHBoxLayout();
+    auto *statusCard = new QFrame(panel);
+    statusCard->setObjectName("statusCard");
+    auto *projectRow = new QHBoxLayout(statusCard);
+    projectRow->setContentsMargins(10, 8, 9, 8);
+    projectRow->setSpacing(7);
     projectLabel_ = new QLabel("Chưa mở Project");
+    projectLabel_->setObjectName("project");
     connectionLabel_ = new QLabel("●");
     connectionLabel_->setObjectName("statusDot");
     connectionLabel_->setAlignment(Qt::AlignCenter);
-    connectionLabel_->setFixedWidth(20);
+    connectionLabel_->setFixedWidth(19);
     projectRow->addWidget(projectLabel_, 1);
     projectRow->addWidget(connectionLabel_);
-    root->addLayout(projectRow);
+    root->addWidget(statusCard);
 
-    auto *infoLabel = sectionLabel("THÔNG TIN TRẬN");
-    infoLabel->setObjectName("section");
-    root->addWidget(infoLabel);
+    auto *infoCard = new QFrame(panel);
+    infoCard->setObjectName("card");
+    auto *info = new QVBoxLayout(infoCard);
+    info->setContentsMargins(10, 10, 10, 10);
+    info->setSpacing(6);
 
+    auto *infoTitle = new QLabel("THÔNG TIN TRẬN");
+    infoTitle->setObjectName("sectionTitle");
+    info->addWidget(infoTitle);
+
+    auto *eventLabel = new QLabel("GIẢI ĐẤU");
+    eventLabel->setObjectName("fieldLabel");
+    info->addWidget(eventLabel);
     eventEdit_ = new QLineEdit();
     eventEdit_->setPlaceholderText("Tên giải");
-    root->addWidget(eventEdit_);
+    info->addWidget(eventEdit_);
+
+    auto *roundCourtLabels = new QHBoxLayout();
+    roundCourtLabels->setSpacing(6);
+    auto *roundLabel = new QLabel("VÒNG ĐẤU");
+    auto *courtLabel = new QLabel("SÂN");
+    roundLabel->setObjectName("fieldLabel");
+    courtLabel->setObjectName("fieldLabel");
+    roundCourtLabels->addWidget(roundLabel, 1);
+    roundCourtLabels->addWidget(courtLabel, 1);
+    info->addLayout(roundCourtLabels);
 
     auto *roundCourt = new QHBoxLayout();
-    roundCourt->setSpacing(5);
+    roundCourt->setSpacing(6);
     roundEdit_ = new QLineEdit();
     roundEdit_->setPlaceholderText("Vòng đấu");
     courtEdit_ = new QLineEdit();
     courtEdit_->setPlaceholderText("Sân đấu");
-    roundCourt->addWidget(roundEdit_);
-    roundCourt->addWidget(courtEdit_);
-    root->addLayout(roundCourt);
+    roundCourt->addWidget(roundEdit_, 1);
+    roundCourt->addWidget(courtEdit_, 1);
+    info->addLayout(roundCourt);
+
+    auto *formatLabels = new QHBoxLayout();
+    formatLabels->setSpacing(6);
+    auto *formatLabel = new QLabel("THỂ THỨC");
+    auto *pointsLabel = new QLabel("ĐIỂM KẾT THÚC");
+    formatLabel->setObjectName("fieldLabel");
+    pointsLabel->setObjectName("fieldLabel");
+    formatLabels->addWidget(formatLabel, 1);
+    formatLabels->addWidget(pointsLabel, 1);
+    info->addLayout(formatLabels);
 
     auto *formatRow = new QHBoxLayout();
-    formatRow->setSpacing(5);
+    formatRow->setSpacing(6);
     formatCombo_ = new QComboBox();
     formatCombo_->addItem("Đơn", "singles");
     formatCombo_->addItem("Đôi", "doubles");
@@ -136,14 +269,15 @@ void TenBitDockWidget::buildUI()
     pointsCombo_->addItem("Chạm 11", 11);
     pointsCombo_->addItem("Chạm 15", 15);
     pointsCombo_->addItem("Chạm 21", 21);
-    formatRow->addWidget(formatCombo_);
-    formatRow->addWidget(pointsCombo_);
-    root->addLayout(formatRow);
+    formatRow->addWidget(formatCombo_, 1);
+    formatRow->addWidget(pointsCombo_, 1);
+    info->addLayout(formatRow);
 
     matchStatusLabel_ = new QLabel("--");
     matchStatusLabel_->setObjectName("hint");
     matchStatusLabel_->setWordWrap(true);
-    root->addWidget(matchStatusLabel_);
+    info->addWidget(matchStatusLabel_);
+    root->addWidget(infoCard);
 
     connect(eventEdit_, &QLineEdit::editingFinished, this, [this]() { sendMatchSetup(); });
     connect(roundEdit_, &QLineEdit::editingFinished, this, [this]() { sendMatchSetup(); });
@@ -157,13 +291,18 @@ void TenBitDockWidget::buildUI()
             sendMatchSetup();
     });
 
-    auto *graphicsLabel = sectionLabel("ĐỒ HỌA");
-    graphicsLabel->setObjectName("section");
-    root->addWidget(graphicsLabel);
+    auto *graphicsCard = new QFrame(panel);
+    graphicsCard->setObjectName("card");
+    auto *graphicsRoot = new QVBoxLayout(graphicsCard);
+    graphicsRoot->setContentsMargins(10, 10, 10, 10);
+    graphicsRoot->setSpacing(7);
+    auto *graphicsTitle = new QLabel("ĐỒ HỌA");
+    graphicsTitle->setObjectName("sectionTitle");
+    graphicsRoot->addWidget(graphicsTitle);
 
     auto *graphics = new QGridLayout();
-    graphics->setHorizontalSpacing(5);
-    graphics->setVerticalSpacing(5);
+    graphics->setHorizontalSpacing(7);
+    graphics->setVerticalSpacing(7);
     scoreToggle_ = makeButton("BẢNG ĐIỂM", "toggle_score");
     adButton_ = makeButton("QUẢNG CÁO", "toggle_ad");
     teamsButton_ = makeButton("HIỆN TÊN", "toggle_teams");
@@ -180,27 +319,34 @@ void TenBitDockWidget::buildUI()
     graphics->addWidget(standbyButton_, 2, 1);
     graphics->addWidget(breakButton_, 3, 0);
     graphics->addWidget(resultsButton_, 3, 1);
-    root->addLayout(graphics);
+    graphicsRoot->addLayout(graphics);
+    root->addWidget(graphicsCard);
 
-    auto *replayLabel = sectionLabel("REPLAY");
-    replayLabel->setObjectName("section");
-    root->addWidget(replayLabel);
+    auto *replayCard = new QFrame(panel);
+    replayCard->setObjectName("card");
+    auto *replayRoot = new QVBoxLayout(replayCard);
+    replayRoot->setContentsMargins(10, 10, 10, 10);
+    replayRoot->setSpacing(7);
+    auto *replayTitle = new QLabel("REPLAY");
+    replayTitle->setObjectName("sectionTitle");
+    replayRoot->addWidget(replayTitle);
 
     auto *replayRow = new QHBoxLayout();
-    replayRow->setSpacing(5);
+    replayRow->setSpacing(7);
     replayButton_ = makeButton("PHÁT REPLAY", "replay");
-    replayButton_->setMinimumHeight(36);
-    replaySettingsButton_ = new QPushButton(QString::fromUtf8("⚙"));
+    replayButton_->setObjectName("replayPrimary");
+    replaySettingsButton_ = new QPushButton("⚙");
+    replaySettingsButton_->setObjectName("replaySettings");
     replaySettingsButton_->setToolTip("Cài đặt Replay");
-    replaySettingsButton_->setFixedWidth(42);
-    replaySettingsButton_->setMinimumHeight(36);
     connect(replaySettingsButton_, &QPushButton::clicked, this, [this]() { openReplaySettings(); });
     replayRow->addWidget(replayButton_, 1);
     replayRow->addWidget(replaySettingsButton_);
-    root->addLayout(replayRow);
+    replayRoot->addLayout(replayRow);
 
     recordReplayButton_ = makeButton("GHI REPLAY", "record_replay");
-    root->addWidget(recordReplayButton_);
+    recordReplayButton_->setObjectName("recordReplay");
+    replayRoot->addWidget(recordReplayButton_);
+    root->addWidget(replayCard);
 
     messageLabel_ = new QLabel();
     messageLabel_->setWordWrap(true);
