@@ -64,6 +64,7 @@ private:
 
     QPushButton *scoreToggle_ = nullptr;
     QPushButton *adButton_ = nullptr;
+    QPushButton *nextAdButton_ = nullptr;
     QPushButton *teamsButton_ = nullptr;
     QPushButton *introButton_ = nullptr;
     QPushButton *timeoutButton_ = nullptr;
