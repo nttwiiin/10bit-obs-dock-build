@@ -1,6 +1,6 @@
 # 10BIT Broadcast OBS Dock — GitHub build-ready source
 
-Native Qt/OBS Frontend API dock. No Browser Dock and no overlay URL is used for control.
+Native Qt/OBS Frontend API dock.\n\nP1.8.3: Video QC has an independent next arrow; video playlist is forward-only and returns to LIVE when last clip ends. No Browser Dock and no overlay URL is used for control.
 
 ## Target
 
