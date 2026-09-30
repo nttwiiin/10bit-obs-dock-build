@@ -24,11 +24,33 @@ static QDockWidget *findDock(QMainWindow *mainWindow, const char *id)
     return mainWindow->findChild<QDockWidget *>(QString::fromUtf8(id), Qt::FindChildrenRecursively);
 }
 
+static void applyPremiumDockFrame(QDockWidget *dock)
+{
+    if (!dock)
+        return;
+    dock->setStyleSheet(R"(
+        QDockWidget {
+            color:#f0f5ff;
+            background:#07111d;
+            font-weight:800;
+        }
+        QDockWidget::title {
+            text-align:left;
+            background:#101b2b;
+            color:#f4f7ff;
+            padding:6px 8px;
+            border:1px solid #273b55;
+            border-bottom:1px solid #344f70;
+        }
+    )");
+}
+
 static void attach_control_dock(QMainWindow *mainWindow)
 {
     auto *dock = findDock(mainWindow, kControlDockId);
     if (!dock)
         return;
+    applyPremiumDockFrame(dock);
     dock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     mainWindow->addDockWidget(Qt::RightDockWidgetArea, dock);
     dock->setFloating(false);
@@ -42,6 +64,7 @@ static void attach_score_dock(QMainWindow *mainWindow)
     auto *scoreDock = findDock(mainWindow, kScoreDockId);
     if (!scoreDock)
         return;
+    applyPremiumDockFrame(scoreDock);
     scoreDock->setAllowedAreas(Qt::BottomDockWidgetArea | Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     scoreDock->setFloating(false);
     auto *controlsDock = mainWindow->findChild<QDockWidget *>(QStringLiteral("controlsDock"), Qt::FindChildrenRecursively);
