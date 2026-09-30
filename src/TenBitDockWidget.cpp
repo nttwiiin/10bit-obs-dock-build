@@ -306,7 +306,7 @@ void TenBitDockWidget::buildUI()
     graphics->setVerticalSpacing(7);
     scoreToggle_ = makeButton("BẢNG ĐIỂM", "toggle_score");
     adButton_ = makeButton("QUẢNG CÁO THƯỜNG", "toggle_banner_ad");
-    adVideoButton_ = makeButton("VIDEO TOÀN MÀN", "toggle_fullscreen_ad");
+    adVideoButton_ = makeButton("VIDEO QC", "toggle_fullscreen_ad");
     teamsButton_ = makeButton("HIỆN TÊN", "toggle_teams");
     introButton_ = makeButton("INTRO", "intro");
     timeoutButton_ = makeButton("TIME OUT", "timeout");
@@ -316,14 +316,21 @@ void TenBitDockWidget::buildUI()
     graphics->addWidget(scoreToggle_, 0, 0);
     auto *adControls = new QHBoxLayout();
     adControls->setSpacing(4);
-    nextAdButton_ = makeButton(">", "next_ad");
+    nextAdButton_ = makeButton(">", "next_banner_ad");
     nextAdButton_->setObjectName("nextAd");
-    nextAdButton_->setToolTip("Phát quảng cáo tiếp theo");
+    nextAdButton_->setToolTip("Banner tiếp theo");
+    nextVideoButton_ = makeButton(">", "next_video_ad");
+    nextVideoButton_->setObjectName("nextAd");
+    nextVideoButton_->setToolTip("Video QC tiếp theo; nếu hết danh sách tự trở về LIVE");
     adControls->addWidget(adButton_, 1);
     adControls->addWidget(nextAdButton_);
     graphics->addLayout(adControls, 0, 1);
     graphics->addWidget(teamsButton_, 1, 0);
-    graphics->addWidget(adVideoButton_, 1, 1);
+    auto *videoControls = new QHBoxLayout();
+    videoControls->setSpacing(4);
+    videoControls->addWidget(adVideoButton_, 1);
+    videoControls->addWidget(nextVideoButton_);
+    graphics->addLayout(videoControls, 1, 1);
     graphics->addWidget(introButton_, 2, 0);
     graphics->addWidget(timeoutButton_, 2, 1);
     graphics->addWidget(standbyButton_, 3, 0);
@@ -585,11 +592,12 @@ void TenBitDockWidget::applyState(const QJsonObject &state)
     const bool adOn = state.value("adVisible").toBool();
     const bool videoMode = state.value("adMode").toString() == "fullscreen";
     setActive(adButton_, adOn && !videoMode, "●  QC THƯỜNG", "QC THƯỜNG");
-    setActive(adVideoButton_, adOn && videoMode, "●  VIDEO TOÀN MÀN", "VIDEO TOÀN MÀN");
+    setActive(adVideoButton_, adOn && videoMode, "●  VIDEO QC", "VIDEO QC");
     const QString adName = state.value("adActiveName").toString();
     adButton_->setToolTip(adOn && !videoMode ? "Banner: " + adName : "Phát logo/ảnh banner");
     adVideoButton_->setToolTip(adOn && videoMode ? (state.value("adVideoPlaying").toBool() ? "Video đang phát: " : "Đang chờ video: ") + adName : "Phát video MP4/WebM toàn màn hình và âm thanh");
-    nextAdButton_->setEnabled(!adName.isEmpty());
+    nextAdButton_->setEnabled(adOn && !videoMode);
+    nextVideoButton_->setEnabled(adOn && videoMode);
     setActive(teamsButton_, graphics.value("ProgramTeams").toBool(), "●  HIỆN TÊN", "HIỆN TÊN");
 
     const QString takeover = graphics.value("ProgramTakeover").toString();
