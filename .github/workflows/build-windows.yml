@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [ main, master, advertising-p1-8-2 ]
+  pull_request:
+    branches: [ main ]
 
 permissions:
   contents: read
